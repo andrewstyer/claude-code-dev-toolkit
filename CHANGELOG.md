@@ -5,6 +5,92 @@ All notable changes to the Claude Code Development Toolkit will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-11-13
+
+### Added
+
+**Core Skills (Bug Reporting System):**
+- **skills/reporting-bugs/** - Interactive bug capture during manual testing
+  - Structured prompting for bug details (title, repro steps, severity)
+  - Optional E2E test generation (Maestro flows)
+  - Stores in bugs.yaml with metadata
+- **skills/triaging-bugs/** - Batch bug review and prioritization
+  - Review all active bugs
+  - Select bugs to fix
+  - Create worktree and generate plan
+- **skills/fixing-bugs/** - Autonomous bug fixing with TDD
+  - Uses systematic-debugging skill
+  - Follows RED-GREEN-REFACTOR cycle
+  - Updates bugs.yaml on completion
+
+**Optional Extensions:**
+- **extensions/testing-infra/** - E2E testing infrastructure setup
+  - Autonomous setup in 5-10 minutes
+  - Supports React Native (iOS/Android), native mobile, web apps
+  - Installs Maestro/Detox/Playwright/Cypress
+  - Creates quality gates and sample tests
+  - Generates 1,600-2,400 lines of documentation
+- **extensions/build-deploy-setup/** - iOS/Android deployment pipelines
+  - 30-60 minute autonomous setup across 5 phases
+  - Fastlane automation with quality gates
+  - TestFlight + App Store configuration
+  - Code signing setup (API Key, Manual, Match)
+  - Optional CI/CD integration (GitHub Actions, GitLab, etc.)
+
+**New Documentation:**
+- **EXTENSIONS.md** - Comprehensive guide for skills and extensions
+  - When to use each extension
+  - Installation instructions (skill vs prompt)
+  - Decision tree for which extensions you need
+  - Troubleshooting and maintenance
+  - Contributing new extensions
+
+### Changed
+
+**README.md:**
+- Added "What's New" section with v2.1 and v2.0 highlights
+- Added Skills & Extensions section to "What's Included"
+- Updated version to v2.1
+
+### Design Rationale
+
+**Problem:** Core toolkit provides excellent session management, but projects still need:
+1. Structured bug tracking during development
+2. E2E testing infrastructure setup
+3. Build/deploy automation for mobile apps
+
+**Solution:**
+- **Bug reporting as core skill** - Universal need across all projects
+- **Testing/build as extensions** - Project-type specific, optional install
+- Clear decision tree in EXTENSIONS.md for when to use each
+
+**Benefits:**
+- Bug reporting integrated with TDD workflow
+- Testing setup saves hours of configuration
+- Build/deploy setup handles complex iOS/Android pipelines
+- All work together: bugs → tests → builds → deployment
+
+### Migration from v2.0
+
+No breaking changes. All v2.0 functionality intact.
+
+**To add bug reporting:**
+- Already included! Skills are in `skills/` directory
+- Just start using: "I found a bug - [describe it]"
+
+**To add extensions:**
+```bash
+# Testing infrastructure
+cp -r extensions/testing-infra/skills/setup-testing-infrastructure .claude/skills/
+# Then: "Set up testing infrastructure"
+
+# Build/deploy
+cp -r extensions/build-deploy-setup/skills/setup-build-deploy .claude/skills/
+# Then: "Set up build and deploy pipeline"
+```
+
+---
+
 ## [2.0.0] - 2025-11-13
 
 ### Added

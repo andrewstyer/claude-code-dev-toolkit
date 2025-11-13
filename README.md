@@ -2,11 +2,22 @@
 
 **Reusable session management and workflow system for Claude Code projects**
 
-**Current Version:** v2.0 (November 2025) - Now with automated drift prevention!
+**Current Version:** v2.1 (November 2025) - Now with skills & extensions!
 
 ---
 
-## ⚡ What's New in v2.0
+## ⚡ What's New
+
+### v2.1 (November 2025) - Skills & Extensions
+
+**New in v2.1:**
+- **Bug reporting skills** (included) - Report bugs, triage, fix autonomously
+- **Testing infrastructure extension** - Set up E2E tests in 5-10 minutes
+- **Build/deploy extension** - iOS/Android deployment pipelines
+
+**[See EXTENSIONS.md for details →](EXTENSIONS.md)**
+
+### v2.0 (November 2025) - Documentation System
 
 **Major improvements based on 2+ weeks of real-world usage:**
 
@@ -30,7 +41,8 @@ This toolkit provides a complete session management system for working with Clau
 - **Recovery procedures** when things go wrong
 - **Consistent workflow** across all sessions
 - **Progress tracking** that survives context loss
-- **Documentation that stays lean** through automation (NEW in v2.0)
+- **Documentation that stays lean** through automation (v2.0)
+- **Bug tracking & testing automation** through skills and extensions (v2.1)
 
 ---
 
@@ -77,6 +89,23 @@ This toolkit provides a complete session management system for working with Clau
 |------|---------|
 | `case-studies/README.md` | **NEW** Index of real-world implementations |
 | `case-studies/healthnarrative2-documentation-system.md` | **NEW** HN2 case study with metrics |
+
+### Skills & Extensions (v2.1)
+
+**Core Skills (Included):**
+| Skill | Purpose |
+|-------|---------|
+| `skills/reporting-bugs/` | **NEW** Interactive bug capture during testing |
+| `skills/triaging-bugs/` | **NEW** Batch bug review and prioritization |
+| `skills/fixing-bugs/` | **NEW** Autonomous bug fixing with TDD |
+
+**Optional Extensions:**
+| Extension | Purpose | When to Use |
+|-----------|---------|-------------|
+| `extensions/testing-infra/` | E2E testing setup | Projects without automated tests |
+| `extensions/build-deploy-setup/` | Mobile deployment pipeline | iOS/Android apps going to production |
+
+**See [EXTENSIONS.md](EXTENSIONS.md) for installation and usage guide.**
 
 ---
 
