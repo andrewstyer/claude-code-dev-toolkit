@@ -1,4 +1,16 @@
-# {{PROJECT_NAME}} - Current Session Status
+# ⚠️ DEPRECATED: Use HANDOFF.md Instead
+
+**This file is deprecated as of November 2025 (v2.0)**
+
+**Use instead:** `HANDOFF.md` (< 100 lines, prevents documentation drift)
+
+**Why the change:** SESSION-STATUS.md tended to grow to 1000+ lines, defeating its purpose. HANDOFF.md uses structured templates with line budgets and automated validation.
+
+**Migration guide:** See UPDATE-NOTES.md
+
+---
+
+# {{PROJECT_NAME}} - Current Session Status (DEPRECATED)
 
 **Last Updated:** [DATE]
 **Current Phase:** [Phase X - Name]
