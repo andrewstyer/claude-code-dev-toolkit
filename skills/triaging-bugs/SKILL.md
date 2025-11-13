@@ -1,13 +1,13 @@
 ---
 name: triaging-bugs
-description: Batch review and prioritization of reported bugs - select bugs to fix, create worktree, generate plan
+description: Batch review and prioritization of reported bugs - assign to sprint, fix immediately, or mark triaged
 ---
 
 # Triaging Bugs
 
 ## Overview
 
-Review all reported bugs, prioritize by severity, select bugs to fix in batch, create worktree for isolation, generate implementation plan.
+Review all reported bugs, prioritize by severity, select bugs in batch. Three options: (1) Assign to sprint for sprint planning, (2) Fix immediately with worktree, or (3) Mark triaged for later scheduling.
 
 **Announce at start:** "I'm using the triaging-bugs skill to review reported bugs."
 
@@ -77,9 +77,174 @@ Exit skill.
 
 If bugs selected, continue to Phase 3.
 
-### Phase 3: Worktree Setup
+### Phase 3: Sprint Assignment (Optional)
 
-**4. Ask about worktree creation**
+**3a. Ask about sprint assignment**
+
+```
+Use AskUserQuestion:
+Question: "How should we handle these bugs?"
+Header: "Bug Assignment"
+multiSelect: false
+Options:
+  - Label: "Assign to Sprint"
+    Description: "Schedule bugs into a sprint for sprint planning"
+  - Label: "Fix Immediately"
+    Description: "Create worktree and fix now (traditional workflow)"
+  - Label: "Mark Triaged Only"
+    Description: "Just mark as triaged, schedule later"
+```
+
+**If "Assign to Sprint" selected:**
+
+**3b. List existing sprints or create new**
+
+```
+Read docs/plans/sprints/ directory
+List all sprints with status != "completed"
+
+Use AskUserQuestion:
+Question: "Which sprint should these bugs go into?"
+Header: "Sprint Selection"
+Options:
+  - Label: "Create New Sprint"
+    Description: "Start a new sprint for these bugs"
+  - Label: "SPRINT-001: Core Features"
+    Description: "5 features, 2 bugs already assigned"
+  - Label: "SPRINT-002: UX Polish"
+    Description: "3 features, 0 bugs"
+  [... for each active sprint]
+```
+
+**If "Create New Sprint":**
+```
+Prompt: "Sprint name?" (e.g., "Sprint 5: Bug Fixes")
+Prompt: "Sprint duration?" (default: 2 weeks)
+Prompt: "Sprint goal?" (default: "Fix ${selectedBugs.length} bugs")
+
+Generate sprint ID: SPRINT-{nextId:03d}
+```
+
+**If existing sprint selected:**
+```
+Use selected sprint ID
+```
+
+**3c. Update bugs.yaml with sprint assignment**
+
+```typescript
+for (const bug of selectedBugs) {
+  bug.status = 'scheduled';  // Update from 'reported' to 'scheduled'
+  bug.sprint_id = selectedSprintId;
+  bug.scheduled_at = new Date().toISOString();
+  bug.updated_at = new Date().toISOString();
+}
+```
+
+**3d. Update/create sprint document**
+
+Add bugs to sprint document in `docs/plans/sprints/SPRINT-XXX-[name].md`:
+
+```markdown
+## Bugs
+
+### P0 (Critical)
+- [ ] BUG-001: Timeline crashes on scroll
+  - Severity: P0
+  - Status: scheduled
+  - E2E Test: .maestro/flows/bugs/BUG-001-timeline-crash.yaml
+  - Reported: 2025-01-14
+
+### P1 (High)
+- [ ] BUG-003: Document upload fails on large PDFs
+  - Severity: P1
+  - Status: scheduled
+  - Reported: 2025-01-15
+```
+
+**3e. Update ROADMAP.md**
+
+Add bugs to ROADMAP.md under the sprint:
+
+```markdown
+## Current Sprint
+
+**SPRINT-001: Core Features** (active)
+- Goal: Implement medication tracking and fix critical bugs
+- Duration: 2 weeks
+- Progress: 30%
+
+### Features (3)
+- [ ] FEAT-001: Add medication tracking
+- [ ] FEAT-003: Improve document upload flow
+
+### Bugs (2)
+- [ ] BUG-001: Timeline crashes on scroll (P0)
+- [ ] BUG-003: Document upload fails on large PDFs (P1)
+```
+
+**3f. Commit sprint assignment**
+
+```bash
+git add bugs.yaml docs/bugs/index.yaml docs/plans/sprints/ ROADMAP.md
+
+git commit -m "triage: schedule ${selectedBugs.length} bugs into ${sprintName}
+
+Bugs scheduled:
+${selectedBugs.map(b => `- ${b.id} (${b.severity}): ${b.title}`).join('\n')}
+
+Sprint: ${sprintId} - ${sprintName}
+Status: reported → scheduled"
+```
+
+**3g. Display sprint assignment summary**
+
+```
+✅ Bugs Scheduled into Sprint
+
+Sprint: ${sprintId} - ${sprintName}
+Bugs scheduled: ${selectedBugs.length}
+
+${selectedBugs.map(b => `- ${b.id} (${b.severity}): ${b.title}`).join('\n')}
+
+Sprint document: docs/plans/sprints/${sprintId}-[slug].md
+ROADMAP.md updated
+
+Next steps:
+1. Review sprint document for bug details
+2. Use scheduling-work-items to add more bugs/features to sprint
+3. Start working on bugs when sprint begins
+```
+
+**Skip to Phase 5 (Handoff) - no worktree needed for sprint assignment**
+
+---
+
+**If "Fix Immediately" selected:**
+
+Continue to Phase 4 (Worktree Setup) below.
+
+**If "Mark Triaged Only" selected:**
+
+```typescript
+for (const bug of selectedBugs) {
+  bug.status = 'triaged';
+  bug.updated_at = new Date().toISOString();
+}
+
+git add bugs.yaml docs/bugs/index.yaml
+git commit -m "triage: mark ${selectedBugs.length} bugs as triaged"
+```
+
+Skip to Phase 5 (Handoff).
+
+---
+
+### Phase 4: Worktree Setup (for "Fix Immediately" workflow)
+
+**NOTE:** This phase only runs if user selected "Fix Immediately" in Phase 3.
+
+**4a. Ask about worktree creation**
 
 ```
 Use AskUserQuestion:
@@ -91,13 +256,13 @@ Options:
 
 If Yes:
 
-**5. Announce worktree skill usage**
+**4b. Announce worktree skill usage**
 
 ```
 I'm using the using-git-worktrees skill to set up an isolated workspace.
 ```
 
-**6. Use superpowers:using-git-worktrees**
+**4c. Use superpowers:using-git-worktrees**
 
 ```typescript
 // Generate worktree name
@@ -117,7 +282,7 @@ The using-git-worktrees skill will:
 - Verify tests pass (baseline)
 - Report ready
 
-**7. Update bug status to 'triaged'**
+**4d. Update bug status to 'triaged'**
 
 ```typescript
 for (const bug of selectedBugs) {
@@ -132,9 +297,11 @@ Selected for fixing:
 ${selectedBugs.map(b => `- ${b.id}: ${b.title}`).join('\n')}"
 ```
 
-### Phase 4: Implementation Planning
+### Phase 5: Implementation Planning (for "Fix Immediately" workflow)
 
-**8. Ask about creating implementation plan**
+**NOTE:** This phase only runs if user selected "Fix Immediately" in Phase 3.
+
+**5a. Ask about creating implementation plan**
 
 ```
 Use AskUserQuestion:
@@ -146,13 +313,13 @@ Options:
 
 If Yes:
 
-**9. Announce planning skill usage**
+**5b. Announce planning skill usage**
 
 ```
 I'm using the writing-plans skill to create the implementation plan.
 ```
 
-**10. Use superpowers:writing-plans**
+**5c. Use superpowers:writing-plans**
 
 ```typescript
 // The writing-plans skill will create a plan document with:
@@ -165,9 +332,9 @@ I'm using the writing-plans skill to create the implementation plan.
 // Plan saved to: docs/plans/YYYY-MM-DD-bugfix-batch.md
 ```
 
-### Phase 5: Handoff
+### Phase 6: Handoff
 
-**11. Display triage summary**
+**6. Display triage summary**
 
 ```
 ✅ Triage complete
@@ -237,8 +404,33 @@ Bugs are marked as triaged. You can:
 - **writing-plans skill:** REQUIRED for implementation planning
 - **fixing-bugs skill:** Will read triaged bugs and update status
 
+## Bug Status Lifecycle
+
+**Status values in bugs.yaml:**
+- `reported` - Bug captured, not yet triaged
+- `triaged` - Bug reviewed, marked for later fixing (no sprint assigned)
+- `scheduled` - Bug assigned to sprint, not yet started
+- `in_progress` - Bug being actively fixed
+- `resolved` - Bug fixed and verified
+
+**Status transitions:**
+1. **Sprint assignment workflow:** reported → scheduled (via triaging-bugs "Assign to Sprint")
+2. **Immediate fix workflow:** reported → triaged → in_progress (via triaging-bugs "Fix Immediately" + fixing-bugs)
+3. **Mark triaged only:** reported → triaged (for later scheduling via scheduling-work-items)
+
+**New fields in bugs.yaml for sprint assignment:**
+- `sprint_id` - Sprint identifier (e.g., "SPRINT-001")
+- `scheduled_at` - ISO 8601 timestamp when assigned to sprint
+
 ## Files Modified
 
+**Sprint assignment workflow:**
+- `bugs.yaml` - Updated bug status (reported → scheduled) + sprint_id
+- `docs/bugs/index.yaml` - Updated bug status in index
+- `docs/plans/sprints/SPRINT-XXX-[name].md` - Sprint document with bugs
+- `ROADMAP.md` - Updated with bugs in sprint
+
+**Fix immediately workflow:**
 - `bugs.yaml` - Updated bug status (reported → triaged)
 - `docs/bugs/index.yaml` - Updated bug status in index
 - `.worktrees/bugfix-batch-YYYY-MM-DD/` - New worktree (if created)
@@ -248,7 +440,9 @@ Bugs are marked as triaged. You can:
 
 ✅ All active bugs displayed by severity
 ✅ User can multi-select bugs to fix
-✅ Worktree created with clean baseline
-✅ Bug status updated to 'triaged'
-✅ Implementation plan generated (if requested)
-✅ Clear handoff to fixing phase
+✅ Three workflow options: sprint assignment, fix immediately, or mark triaged
+✅ Sprint assignment updates bugs.yaml, sprint documents, and ROADMAP.md
+✅ Worktree created with clean baseline (fix immediately workflow)
+✅ Bug status updated appropriately (triaged or scheduled)
+✅ Implementation plan generated (if requested in fix immediately workflow)
+✅ Clear handoff to next phase (sprint planning or fixing)

@@ -10,20 +10,22 @@ Based on: Health Narrative 2 feature request system (real-world usage)
 
 ## Overview
 
-Four-skill system for managing feature requests from idea to implementation:
+Five-skill system for managing features and bugs from idea to implementation:
 
 1. **reporting-features** - Capture feature requests with structured prompting
 2. **triaging-features** - Batch review and prioritization
-3. **scheduling-features** - Sprint planning with optional superpowers integration
+3. **scheduling-features** - Sprint planning with features only
 4. **scheduling-implementation-plan** - Convert existing implementation plans into sprint tasks
+5. **scheduling-work-items** - **NEW** Unified sprint planning with bugs AND features
 
 **Design goals:**
-- Lightweight YAML storage (features.yaml)
+- Lightweight YAML storage (features.yaml + bugs.yaml)
 - Minimal overhead during capture
 - Batch operations for efficiency
 - Optional integration with superpowers for full lifecycle
 - Auto-generated roadmap
 - Bridge standalone implementation plans into sprint system
+- Unified sprint planning across bugs and features
 
 ---
 
@@ -237,6 +239,53 @@ Claude Code: [Uses scheduling-features skill]
 - Use this when you already have an implementation plan created outside the feature workflow
 
 **See:** [skills/scheduling-implementation-plan/SKILL.md](skills/scheduling-implementation-plan/SKILL.md)
+
+---
+
+### scheduling-work-items
+
+**Purpose:** Unified sprint planning with both bugs AND features
+
+**Usage:**
+- Planning new sprint with bugs and features together
+- Want to prioritize across bugs vs features (e.g., "P0 bug vs Must-Have feature?")
+- Need unified view of all schedulable work
+- Capacity planning for sprint ("We can do 10 items total")
+- After triaging bugs (via triaging-bugs) and features (via triaging-features)
+
+**What it does:**
+1. Reads both bugs.yaml (status="triaged") and features.yaml (status="approved")
+2. Displays unified view of all schedulable work items
+3. Optional filtering (bugs only, features only, high priority only, by category)
+4. Create new sprint or add to existing sprint
+5. User selects which bugs and features to schedule
+6. Capacity check (shows total items before committing)
+7. Optional: Create implementation plans for features (not bugs)
+8. Updates bugs.yaml with sprint_id and status="scheduled"
+9. Updates features.yaml with sprint_id and status="scheduled"
+10. Creates/updates sprint document with bugs and features sections
+11. Updates ROADMAP.md with unified view (bugs + features together)
+12. Git commit
+
+**Output:**
+- bugs.yaml updated (triaged → scheduled) + sprint_id
+- features.yaml updated (approved → scheduled) + sprint_id
+- docs/plans/sprints/SPRINT-XXX-[name].md (sprint document with bugs and features)
+- ROADMAP.md (unified bugs + features view)
+- Index files updated
+- Git commit
+
+**Time:**
+- Basic scheduling: ~3-5 minutes per sprint
+- With implementation planning: +5-10 minutes per feature
+
+**Difference from other scheduling skills:**
+- scheduling-features: Features only, creates feature-only sprints
+- scheduling-work-items: Bugs + features, unified prioritization and capacity planning
+- triaging-bugs "Assign to Sprint": Quick bug-only assignment during triage
+- Use this when you want to plan a sprint with BOTH bugs and features
+
+**See:** [skills/scheduling-work-items/SKILL.md](skills/scheduling-work-items/SKILL.md)
 
 ---
 

@@ -5,6 +5,92 @@ All notable changes to the Claude Code Development Toolkit will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2025-11-14
+
+### Added
+
+**Unified Bug + Feature Sprint Planning:**
+- **skills/scheduling-work-items/** - Unified sprint planning with bugs AND features
+  - Displays both triaged bugs and approved features in one view
+  - Unified prioritization across bugs vs features (P0 vs Must-Have)
+  - Capacity planning showing total items before committing
+  - Creates sprints with mixed bugs and features
+  - Updates both bugs.yaml and features.yaml with sprint_id
+  - Generates sprint documents with separate bugs and features sections
+  - Updates ROADMAP.md with unified bugs + features view
+  - ~3-5 minutes per sprint (+ 5-10 min per feature if creating implementation plans)
+
+**Bug Status Lifecycle:**
+- Extended bugs.yaml schema to support sprint assignment
+  - New status: `scheduled` (bug assigned to sprint, not yet started)
+  - New field: `sprint_id` (e.g., "SPRINT-001")
+  - New field: `scheduled_at` (ISO 8601 timestamp)
+- Status lifecycle: reported → triaged → scheduled → in_progress → resolved
+
+### Changed
+
+**skills/triaging-bugs:** Major update for sprint integration
+- Added Phase 3: Sprint Assignment with three workflow options:
+  1. **Assign to Sprint** - Schedule bugs into sprint (new workflow)
+     - List existing sprints or create new sprint
+     - Update bugs.yaml with sprint_id and status="scheduled"
+     - Update sprint document with bugs section
+     - Update ROADMAP.md with bugs
+     - Git commit
+  2. **Fix Immediately** - Create worktree and fix now (original workflow)
+  3. **Mark Triaged Only** - Mark as triaged for later scheduling
+- Updated bug status transitions to support sprint workflow
+- Added documentation for bug status lifecycle
+- Updated success criteria and files modified sections
+
+**ROADMAP.md Format:**
+- Now shows bugs AND features together in sprint sections
+- Separate subsections for features and bugs within each sprint
+- Unified progress tracking across both work item types
+
+**Sprint Document Format:**
+- Added "Bugs" section with P0/P1/P2 grouping
+- Shows bug severity, status, E2E test links
+- Unified progress tracking (features + bugs)
+
+### Integration
+
+**New unified workflow:**
+```
+triaging-bugs → status="triaged" (bugs.yaml)
+triaging-features → status="approved" (features.yaml)
+   ↓
+scheduling-work-items → unified sprint planning
+   ↓
+Sprint document + ROADMAP.md with bugs AND features
+```
+
+**Alternative workflows:**
+1. Quick bug assignment: triaging-bugs "Assign to Sprint" → sprint document
+2. Feature-only: scheduling-features (unchanged)
+3. Plan bridging: scheduling-implementation-plan (unchanged)
+
+### Notes
+
+**Why both bugs and features in sprints?**
+- Real-world sprint planning includes both bug fixes and new features
+- Prioritize across types (P0 bug vs Must-Have feature)
+- Capacity planning with total work items
+- Unified progress tracking
+
+**Use scheduling-work-items when:**
+- Planning sprint with both bugs and features
+- Want unified view of all schedulable work
+- Need to prioritize across bugs vs features
+
+**Use triaging-bugs "Assign to Sprint" when:**
+- Quick bug-only sprint assignment during triage
+- Adding bugs to existing sprint
+
+**Use scheduling-features when:**
+- Feature-only sprint planning
+- Don't have bugs to schedule
+
 ## [2.1.1] - 2025-11-14
 
 ### Added

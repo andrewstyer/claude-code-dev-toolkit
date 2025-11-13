@@ -2,19 +2,37 @@
 
 **Reusable session management and workflow system for Claude Code projects**
 
-**Current Version:** v2.1 (November 2025) - Now with skills & extensions!
+**Current Version:** v2.1.2 (November 2025) - Now with unified bug + feature sprint planning!
 
 ---
 
 ## ⚡ What's New
 
+### v2.1.2 (November 2025) - Unified Sprint Planning
+
+**NEW: Schedule bugs AND features together in sprints!**
+- **scheduling-work-items skill** - Unified sprint planning with bugs and features
+  - Prioritize across bugs vs features (P0 bug vs Must-Have feature)
+  - Capacity planning with total work items
+  - ROADMAP.md shows unified bugs + features view
+- **triaging-bugs updated** - Now supports sprint assignment
+  - Three workflows: Assign to Sprint, Fix Immediately, or Mark Triaged
+  - Quick bug-only sprint assignment during triage
+- **Bug status lifecycle** - Extended schema with `scheduled` status and `sprint_id`
+
+**[See CHANGELOG.md for full details →](CHANGELOG.md)**
+
+### v2.1.1 (November 2025) - Feature Management
+
+- **Feature management extension** - Feature request workflow with sprint planning
+- **scheduling-implementation-plan** - Bridge standalone plans into sprints
+
 ### v2.1 (November 2025) - Skills & Extensions
 
-**New in v2.1:**
+**Core skills:**
 - **Bug reporting skills** (included) - Report bugs, triage, fix autonomously
 - **Testing infrastructure extension** - Set up E2E tests in 5-10 minutes
 - **Build/deploy extension** - iOS/Android deployment pipelines
-- **Feature management extension** - Feature request workflow with sprint planning
 
 **[See EXTENSIONS.md for details →](EXTENSIONS.md)**
 
