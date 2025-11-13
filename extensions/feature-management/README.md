@@ -1,0 +1,679 @@
+# Feature Management Extension
+
+**Complete feature request workflow: capture → triage → schedule → implement**
+
+Version: 1.0
+Last Updated: 2025-11-14
+Based on: Health Narrative 2 feature request system (real-world usage)
+
+---
+
+## Overview
+
+Three-skill system for managing feature requests from idea to implementation:
+
+1. **reporting-features** - Capture feature requests with structured prompting
+2. **triaging-features** - Batch review and prioritization
+3. **scheduling-features** - Sprint planning with optional superpowers integration
+
+**Design goals:**
+- Lightweight YAML storage (features.yaml)
+- Minimal overhead during capture
+- Batch operations for efficiency
+- Optional integration with superpowers for full lifecycle
+- Auto-generated roadmap
+
+---
+
+## When to Use This Extension
+
+✅ **Use if:**
+- You're planning features across multiple sprints
+- You want structured feature request capture
+- You need sprint planning with roadmap tracking
+- You're using superpowers workflow and want integration
+- You have more features than you can implement immediately
+
+❌ **Skip if:**
+- Single-feature projects (no backlog needed)
+- All features implemented immediately (no triage/scheduling needed)
+- Ad-hoc development without sprint structure
+
+---
+
+## Quick Start
+
+### 1. Installation
+
+**Copy skills to your project:**
+```bash
+# From dev-toolkit root
+cp -r extensions/feature-management/skills/* .claude/skills/
+
+# OR if using skills-extensions approach
+cp -r extensions/feature-management/skills/reporting-features ~/.config/claude/skills/
+cp -r extensions/feature-management/skills/triaging-features ~/.config/claude/skills/
+cp -r extensions/feature-management/skills/scheduling-features ~/.config/claude/skills/
+```
+
+**Initialize project structure:**
+```bash
+# Will be created automatically on first use, but you can pre-create:
+mkdir -p docs/features docs/plans/{sprints,features}
+touch features.yaml ROADMAP.md
+```
+
+### 2. Workflow
+
+**Step 1: Capture feature requests**
+```
+User: "report a feature"
+Claude Code: [Uses reporting-features skill]
+- Interactive prompts for title, description, category, priority, etc.
+- Creates FEAT-001 in features.yaml with status="proposed"
+- Duplicate detection prevents redundant entries
+```
+
+**Step 2: Triage and approve**
+```
+User: "triage features"
+Claude Code: [Uses triaging-features skill]
+- Shows all proposed features
+- Batch selection and filtering (by category/priority/date)
+- Approve, reject, reprioritize, or assign to epics
+- Updates status to "approved" or "rejected"
+```
+
+**Step 3: Schedule into sprints**
+```
+User: "schedule features"
+Claude Code: [Uses scheduling-features skill]
+- Shows all approved features
+- Create new sprint or add to existing
+- Optional: Create implementation plans (superpowers integration)
+- Optional: Execute features immediately
+- Updates status to "scheduled" or "in-progress"
+- Auto-generates ROADMAP.md
+```
+
+---
+
+## Skills Reference
+
+### reporting-features
+
+**Purpose:** Interactive feature request capture
+
+**Usage:**
+- User says: "report a feature" or "feature request"
+- During manual testing when user suggests improvements
+- Anytime user describes desired functionality
+
+**What it does:**
+1. Prompts for: title, description, category, user value, priority, context
+2. Detects potential duplicates (fuzzy matching)
+3. Generates auto-incrementing ID (FEAT-001, FEAT-002, etc.)
+4. Stores in features.yaml with status="proposed"
+5. Updates docs/features/index.yaml for fast querying
+6. Git commit with feature details
+
+**Output:**
+- features.yaml entry with status="proposed"
+- docs/features/index.yaml updated
+- Git commit
+
+**Time:** ~2 minutes per feature
+
+**See:** [skills/reporting-features/SKILL.md](skills/reporting-features/SKILL.md)
+
+---
+
+### triaging-features
+
+**Purpose:** Batch review and prioritization of proposed features
+
+**Usage:**
+- User says: "triage features" or "review features"
+- After one or more features have been reported
+- Before sprint planning (ensure features are approved)
+- Weekly/biweekly triage sessions
+
+**What it does:**
+1. Lists all features with status="proposed"
+2. Optional filtering (by category, priority, recent only)
+3. Batch selection of features to review
+4. For each feature: approve, reject, reprioritize, assign to epic, or skip
+5. Updates features.yaml with new statuses
+6. Git commit with triage changelog
+
+**Output:**
+- Updated features.yaml (approved/rejected/reprioritized)
+- docs/features/index.yaml updated
+- Git commit with summary
+
+**Time:** ~1-2 minutes per feature
+
+**See:** [skills/triaging-features/SKILL.md](skills/triaging-features/SKILL.md)
+
+---
+
+### scheduling-features
+
+**Purpose:** Schedule approved features into sprints with optional implementation planning
+
+**Usage:**
+- User says: "schedule features" or "plan sprint"
+- After features have been approved
+- At start of new sprint cycle
+- When ready to execute approved features
+
+**What it does:**
+1. Lists all features with status="approved"
+2. Optional filtering (by priority, epic, category)
+3. Create new sprint or add to existing sprint
+4. Optional: Run superpowers:brainstorming for each feature
+5. Optional: Run superpowers:writing-plans to create implementation plans
+6. Optional: Execute features immediately (superpowers:executing-plans or subagent-driven-development)
+7. Updates features.yaml with sprint_id and status="scheduled" (or "in-progress")
+8. Creates/updates sprint document in docs/plans/sprints/
+9. Auto-generates ROADMAP.md
+10. Git commit
+
+**Output:**
+- Updated features.yaml (scheduled/in-progress)
+- docs/plans/sprints/SPRINT-XXX-[name].md (sprint document)
+- docs/plans/features/FEAT-XXX-implementation-plan.md (optional)
+- ROADMAP.md (auto-generated)
+- Git commit
+
+**Time:**
+- Basic scheduling: ~1-2 minutes per feature
+- With planning: ~5-10 minutes per feature
+- With execution: ~30-60+ minutes per feature (depends on complexity)
+
+**See:** [skills/scheduling-features/SKILL.md](skills/scheduling-features/SKILL.md)
+
+---
+
+## Integration with Superpowers
+
+**scheduling-features integrates with superpowers workflow:**
+
+### Full Lifecycle Example
+
+```
+User: "schedule features"
+
+Claude Code:
+1. Shows approved features
+2. User selects FEAT-001, FEAT-003
+3. Creates SPRINT-005
+4. Asks: "Create implementation plans?" → User: "Yes"
+
+For FEAT-001:
+  5. Runs superpowers:brainstorming
+     - Socratic refinement of feature requirements
+     - Validates design choices
+
+  6. Runs superpowers:writing-plans
+     - Creates detailed implementation plan
+     - Generates bite-sized tasks
+     - Saves to docs/plans/features/FEAT-001-implementation-plan.md
+
+  7. Asks: "Execute now?" → User: "Yes, batched execution"
+
+  8. Runs superpowers:executing-plans
+     - Executes tasks in batches with review checkpoints
+     - Updates feature status to "in-progress"
+
+[Repeat for FEAT-003]
+
+9. Updates ROADMAP.md with sprint progress
+10. Git commit
+```
+
+### Flexible Workflows
+
+**Option 1: Schedule only (no planning)**
+- Quick sprint creation
+- Plan implementation later
+
+**Option 2: Schedule + plan (defer execution)**
+- Create implementation plans during sprint planning
+- Execute features as capacity allows
+
+**Option 3: Schedule + plan + execute**
+- Full lifecycle in one session
+- Best for small features or focused sprints
+
+---
+
+## File Structure
+
+```
+project-root/
+├── features.yaml                           # All feature requests
+├── ROADMAP.md                              # Auto-generated roadmap
+└── docs/
+    ├── features/
+    │   └── index.yaml                      # Fast lookup index
+    └── plans/
+        ├── sprints/
+        │   ├── SPRINT-001-core-features.md
+        │   └── SPRINT-002-ux-polish.md
+        └── features/
+            ├── FEAT-001-implementation-plan.md
+            └── FEAT-003-implementation-plan.md
+```
+
+---
+
+## Data Schema
+
+### features.yaml
+
+```yaml
+nextId: 5  # Auto-incremented ID counter
+
+features:
+  - id: FEAT-001
+    title: "Add medication tracking"
+    description: "Allow users to track medications with dosage and schedule"
+    category: new-functionality  # new-functionality | ux-improvement | performance | platform-specific
+    user_value: "Helps users manage complex medication regimens"
+    priority: must-have  # must-have | nice-to-have | future
+    status: scheduled  # proposed | approved | rejected | scheduled | in-progress | completed
+    sprint_id: SPRINT-001  # Optional, added during scheduling
+    implementation_plan: docs/plans/features/FEAT-001-implementation-plan.md  # Optional
+    epic: "Epic 3: Medication Management"  # Optional, added during triage
+    created_at: "2025-01-14T10:30:00Z"
+    scheduled_at: "2025-01-20T14:15:00Z"  # Added during scheduling
+    updated_at: "2025-01-20T14:15:00Z"
+    context: "Requested during iPad testing"  # Optional
+
+  - id: FEAT-002
+    title: "Export health summary as PDF"
+    description: "Generate PDF reports of health data"
+    category: new-functionality
+    user_value: "Allows users to share data with doctors"
+    priority: nice-to-have
+    status: approved
+    created_at: "2025-01-15T11:20:00Z"
+    updated_at: "2025-01-16T09:45:00Z"
+```
+
+### Status Lifecycle
+
+```
+proposed → approved → scheduled → in-progress → completed
+         ↓
+      rejected
+```
+
+**Status definitions:**
+- **proposed**: Feature captured, awaiting triage
+- **approved**: Triaged and approved, ready for scheduling
+- **rejected**: Reviewed and declined (with rejection_reason)
+- **scheduled**: Assigned to sprint, not yet started
+- **in-progress**: Implementation in progress
+- **completed**: Feature implemented and shipped
+
+---
+
+## Common Workflows
+
+### Workflow 1: Weekly Triage Cadence
+
+**Monday morning:**
+```
+User: "triage features"
+Claude Code:
+- Shows all proposed features from last week
+- User approves Must-Have features
+- User rejects out-of-scope features
+- User assigns features to epics
+```
+
+**Result:** Clean backlog of approved features ready for sprint planning
+
+---
+
+### Workflow 2: Sprint Planning Session
+
+**Start of 2-week sprint:**
+```
+User: "schedule features"
+Claude Code:
+- Filter by priority="must-have"
+- Select 5-7 features for sprint
+- Create SPRINT-005: "Core Features Sprint"
+- Choose "Yes, create plans"
+- For each feature: brainstorm → write plan
+- Choose "No, plan only" (defer execution)
+```
+
+**Result:** Sprint document with implementation plans ready, execute features throughout sprint
+
+---
+
+### Workflow 3: Quick Feature Implementation
+
+**Single feature from idea to execution:**
+```
+User: "report a feature"
+Claude Code: [Creates FEAT-015]
+
+User: "triage features"
+Claude Code: [Approves FEAT-015]
+
+User: "schedule features"
+Claude Code:
+- Add to existing sprint (SPRINT-005)
+- Choose "Yes, create plans"
+- Choose "Yes, execute now" → "Subagent-Driven"
+- Feature completed
+```
+
+**Result:** Feature goes from idea to in-progress in single session
+
+---
+
+## Tips and Best Practices
+
+### Feature Capture
+
+**Do:**
+- Capture features immediately when ideas arise
+- Include context (where/when idea came from)
+- Be specific about user value
+
+**Don't:**
+- Overthink during capture (triage later)
+- Skip duplicate detection confirmation
+- Batch up features mentally (capture as you go)
+
+### Triage
+
+**Do:**
+- Batch review multiple features in one session
+- Use filtering to focus (e.g., Must-Have only)
+- Assign features to epics for organization
+- Document rejection reasons
+
+**Don't:**
+- Feel pressure to approve everything
+- Triage alone if team project (get input)
+- Let proposed features pile up (weekly cadence)
+
+### Scheduling
+
+**Do:**
+- Create realistic sprints (don't overcommit)
+- Use implementation planning for complex features
+- Update sprint documents as features progress
+- Review ROADMAP.md regularly
+
+**Don't:**
+- Schedule features without approval first
+- Create implementation plans if requirements unclear (brainstorm first)
+- Forget to update feature status as work progresses
+
+---
+
+## Metrics and Success Indicators
+
+**From Health Narrative 2 real-world usage:**
+
+**Feature capture:**
+- ~2 min per feature (down from ~5 min manual process)
+- 0 duplicate features created after adding duplicate detection
+- 100% of feature requests captured (nothing lost in verbal discussion)
+
+**Triage:**
+- ~1-2 min per feature review
+- Batch processing: 10 features in ~15 min
+- Clear approval/rejection decisions with documented reasons
+
+**Scheduling:**
+- Sprint creation: ~5-10 min (including feature selection)
+- With planning: ~5-10 min per feature for implementation plans
+- ROADMAP.md always current (auto-generated)
+
+---
+
+## Troubleshooting
+
+### Issue: features.yaml is getting large
+
+**Symptom:** File is 1000+ lines, slow to read
+
+**Solution:**
+1. Archive completed features (older than 6 months)
+2. Archive rejected features (older than 3 months)
+3. Create archive/features/ directory
+4. Move old features to archive/features/YYYY-MM.yaml
+
+**Prevention:** Run archival monthly
+
+---
+
+### Issue: Duplicate features despite detection
+
+**Symptom:** Similar features with different IDs
+
+**Solution:**
+1. During triage, reject duplicates with reason: "Duplicate of FEAT-XXX"
+2. Update original feature if needed
+3. Improve feature titles to be more distinct
+
+**Prevention:** Use clear, descriptive titles during capture
+
+---
+
+### Issue: Sprint documents out of sync with features.yaml
+
+**Symptom:** Sprint document shows wrong status
+
+**Solution:**
+1. Sprint documents are generated, don't edit manually
+2. Update features.yaml with correct status
+3. Re-run scheduling-features to regenerate sprint document
+
+**Prevention:** Always update features.yaml, regenerate sprint docs
+
+---
+
+### Issue: ROADMAP.md not updating
+
+**Symptom:** Roadmap shows old sprint status
+
+**Solution:**
+1. ROADMAP.md is auto-generated by scheduling-features
+2. Run "schedule features" → "View Sprint Status" to regenerate
+
+**Prevention:** ROADMAP.md is not manually edited, always regenerate
+
+---
+
+## Advanced Usage
+
+### Epic-Based Organization
+
+**During triage:**
+```
+User: "triage features"
+Claude Code:
+- For each approved feature, choose "Assign to Epic"
+- Enter epic name: "Epic 3: Medication Management"
+```
+
+**During scheduling:**
+```
+User: "schedule features"
+Claude Code:
+- Filter by epic: "Epic 3: Medication Management"
+- Schedule entire epic into one sprint
+```
+
+**Benefit:** Group related features, schedule by theme
+
+---
+
+### Multi-Sprint Planning
+
+**Create multiple sprints in one session:**
+```
+User: "schedule features"
+Claude Code:
+- Filter by priority="must-have"
+- Create SPRINT-005 with 5 features
+- Choose "No, schedule only"
+
+User: "schedule features"
+Claude Code:
+- Filter by priority="nice-to-have"
+- Create SPRINT-006 with 3 features
+- Choose "No, schedule only"
+```
+
+**Result:** Roadmap with multiple planned sprints
+
+---
+
+### Reschedule Features
+
+**Move feature to different sprint:**
+```
+User: "schedule features"
+Claude Code:
+- Shows FEAT-015 already scheduled in SPRINT-005
+- Asks: "Reschedule?"
+- User: "Yes"
+- Select new sprint: SPRINT-006
+```
+
+**Result:** Feature moved, sprint documents updated
+
+---
+
+## Testing
+
+### Validation Testing
+
+**Before deploying to your project:**
+
+1. **Test capture:**
+   ```
+   - Create first feature (initializes features.yaml)
+   - Create second feature (tests ID increment)
+   - Create duplicate (tests duplicate detection)
+   ```
+
+2. **Test triage:**
+   ```
+   - Approve multiple features
+   - Reject one feature with reason
+   - Reprioritize one feature
+   - Assign one feature to epic
+   ```
+
+3. **Test scheduling:**
+   ```
+   - Create new sprint with 2 features
+   - Add feature to existing sprint
+   - View sprint status
+   ```
+
+4. **Verify files:**
+   ```bash
+   cat features.yaml  # Check structure
+   cat docs/features/index.yaml  # Verify index
+   cat docs/plans/sprints/SPRINT-001-*.md  # Check sprint doc
+   cat ROADMAP.md  # Verify roadmap
+   ```
+
+**See:** [TESTING.md](TESTING.md) for detailed test cases
+
+---
+
+## Customization
+
+### Custom Categories
+
+**Edit reporting-features/SKILL.md:**
+```yaml
+# Change category options (Phase 1, Step 3)
+Options:
+  - Label: "Backend"
+    Description: "Server-side functionality"
+  - Label: "Frontend"
+    Description: "Client-side UI/UX"
+  - Label: "DevOps"
+    Description: "Infrastructure and deployment"
+```
+
+### Custom Priorities
+
+**Edit all three skills:**
+```yaml
+# Change priority options
+Options:
+  - Label: "P0 - Critical"
+  - Label: "P1 - High"
+  - Label: "P2 - Medium"
+  - Label: "P3 - Low"
+```
+
+### Custom Sprint Durations
+
+**Edit scheduling-features/SKILL.md:**
+```markdown
+# Phase 4a, Step 1
+Prompt: "Sprint duration?" (default: 1 week)  # Change default
+```
+
+---
+
+## Design Documentation
+
+**Full design docs available:**
+- [DESIGN.md](DESIGN.md) - System architecture and design decisions
+- [TESTING.md](TESTING.md) - Test cases and validation
+
+**Based on:**
+- Health Narrative 2 feature request system (real-world usage, 2+ weeks)
+- /dev/healthnarrative2/healthnarrative/docs/plans/2025-11-14-feature-request-system-design.md
+
+---
+
+## Version History
+
+**v1.0 (November 2025)**
+- Initial release based on HN2 production system
+- Three skills: reporting, triaging, scheduling
+- Superpowers integration for full lifecycle
+- Auto-generated roadmap
+
+---
+
+## Contributing
+
+**Found a bug or have a suggestion?**
+1. Add to features.yaml using reporting-features skill
+2. Submit pull request to dev-toolkit repository
+
+**Want to improve the skills?**
+1. Test changes in your project first
+2. Document changes in TESTING.md
+3. Update this README with new workflows
+4. Submit pull request
+
+---
+
+## License
+
+Part of Claude Code Development Toolkit - see main repository for license
+
+---
+
+**Questions or issues?** See main dev-toolkit README or create an issue in the repository.

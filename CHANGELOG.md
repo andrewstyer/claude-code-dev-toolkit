@@ -5,6 +5,74 @@ All notable changes to the Claude Code Development Toolkit will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-11-14
+
+### Added
+
+**Feature Management Extension:**
+- **extensions/feature-management/** - Complete feature request workflow
+  - **skills/reporting-features/** - Interactive feature capture with auto-IDs (FEAT-001, etc.)
+    - Structured prompting (title, description, category, priority, user value)
+    - Duplicate detection with fuzzy matching
+    - Stores in features.yaml with status="proposed"
+    - ~2 minutes per feature capture
+  - **skills/triaging-features/** - Batch review and prioritization
+    - Smart filtering (by category, priority, date)
+    - Actions: approve, reject, reprioritize, assign to epic
+    - Updates status to "approved" or "rejected"
+    - ~1-2 minutes per feature review
+  - **skills/scheduling-features/** - Sprint planning with superpowers integration
+    - Schedule approved features into sprints
+    - Creates sprint documents in docs/plans/sprints/
+    - Optional: Create implementation plans (superpowers:brainstorming + writing-plans)
+    - Optional: Execute features immediately (superpowers:executing-plans or subagent-driven-development)
+    - Auto-generates ROADMAP.md
+    - Updates status to "scheduled" or "in-progress"
+  - **README.md** - Complete usage guide with workflows and examples
+  - **DESIGN.md** - System architecture from HN2 production use
+  - **TESTING.md** - Test cases and validation procedures
+  - **examples/** - Sample features.yaml, sprint document, and roadmap
+
+**Storage Format:**
+- features.yaml - All feature requests with auto-incrementing IDs
+- docs/features/index.yaml - Fast lookup index
+- docs/plans/sprints/ - Sprint documents
+- docs/plans/features/ - Implementation plans (optional)
+- ROADMAP.md - Auto-generated project roadmap
+
+**Integration:**
+- Full superpowers workflow integration
+- Optional implementation planning
+- Optional immediate execution
+- Flexible workflows (schedule only, plan later, or full lifecycle)
+
+### Changed
+
+**EXTENSIONS.md:**
+- Added comprehensive Feature Management section
+- Updated Quick Reference table with feature-management extension
+- Added example workflows for feature request → sprint planning
+
+**README.md:**
+- Added feature-management to Optional Extensions table
+- Updated "What's New" section for v2.1.1
+
+### Notes
+
+**Based on:** Health Narrative 2 feature request system (real-world usage, 2+ weeks)
+
+**When to use:**
+- Projects with feature backlogs
+- Sprint planning workflows
+- Superpowers workflow integration
+- Need for roadmap visibility
+
+**Results from HN2:**
+- 100% feature capture rate (zero lost in discussion)
+- 0 duplicate features after adding duplicate detection
+- Clear sprint planning with auto-generated roadmap
+- Optional full lifecycle (idea → implementation in one flow)
+
 ## [2.1.0] - 2025-11-13
 
 ### Added

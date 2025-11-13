@@ -14,6 +14,7 @@
 - **Bug reporting skills** (included) - Report bugs, triage, fix autonomously
 - **Testing infrastructure extension** - Set up E2E tests in 5-10 minutes
 - **Build/deploy extension** - iOS/Android deployment pipelines
+- **Feature management extension** - Feature request workflow with sprint planning
 
 **[See EXTENSIONS.md for details →](EXTENSIONS.md)**
 
@@ -104,6 +105,7 @@ This toolkit provides a complete session management system for working with Clau
 |-----------|---------|-------------|
 | `extensions/testing-infra/` | E2E testing setup | Projects without automated tests |
 | `extensions/build-deploy-setup/` | Mobile deployment pipeline | iOS/Android apps going to production |
+| `extensions/feature-management/` | Feature request workflow & sprint planning | Projects with feature backlogs |
 
 **See [EXTENSIONS.md](EXTENSIONS.md) for installation and usage guide.**
 

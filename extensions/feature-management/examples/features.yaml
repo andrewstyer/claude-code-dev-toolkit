@@ -1,0 +1,66 @@
+# Example features.yaml
+# This file is created automatically by reporting-features skill
+# Do not edit manually - use the skills to manage features
+
+nextId: 6
+
+features:
+  - id: FEAT-001
+    title: "Add medication tracking"
+    description: "Allow users to track medications with dosage, schedule, and refill reminders"
+    category: new-functionality
+    user_value: "Helps users manage complex medication regimens and never miss doses"
+    priority: must-have
+    status: in-progress
+    sprint_id: SPRINT-001
+    implementation_plan: docs/plans/features/FEAT-001-implementation-plan.md
+    epic: "Epic 3: Medication Management"
+    created_at: "2025-01-14T10:30:00Z"
+    scheduled_at: "2025-01-20T14:15:00Z"
+    updated_at: "2025-01-22T09:45:00Z"
+    context: "Requested during iPad testing - users managing 10+ medications"
+
+  - id: FEAT-002
+    title: "Export health summary as PDF"
+    description: "Generate PDF reports of health data for doctor visits"
+    category: new-functionality
+    user_value: "Allows users to share comprehensive health data with healthcare providers"
+    priority: nice-to-have
+    status: scheduled
+    sprint_id: SPRINT-001
+    created_at: "2025-01-15T11:20:00Z"
+    scheduled_at: "2025-01-20T14:15:00Z"
+    updated_at: "2025-01-20T14:15:00Z"
+
+  - id: FEAT-003
+    title: "Improve document upload flow"
+    description: "Simplify document upload with drag-and-drop and better progress indicators"
+    category: ux-improvement
+    user_value: "Reduces friction when adding medical documents to the app"
+    priority: must-have
+    status: approved
+    epic: "Epic 2: UX Polish"
+    created_at: "2025-01-16T14:30:00Z"
+    updated_at: "2025-01-18T10:20:00Z"
+    context: "User feedback: current flow is confusing with multiple taps required"
+
+  - id: FEAT-004
+    title: "Add dark mode support"
+    description: "Implement system-wide dark mode with proper contrast ratios"
+    category: platform-specific
+    user_value: "Better usability in low-light conditions, reduces eye strain"
+    priority: nice-to-have
+    status: proposed
+    created_at: "2025-01-17T16:45:00Z"
+    updated_at: "2025-01-17T16:45:00Z"
+
+  - id: FEAT-005
+    title: "Optimize image loading performance"
+    description: "Implement lazy loading and caching for document images"
+    category: performance
+    user_value: "Faster app experience, especially with many documents"
+    priority: must-have
+    status: approved
+    created_at: "2025-01-18T09:15:00Z"
+    updated_at: "2025-01-19T13:40:00Z"
+    context: "Performance testing revealed 3-5 second delays with 20+ documents"

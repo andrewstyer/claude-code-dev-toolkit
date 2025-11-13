@@ -477,6 +477,216 @@ Extensions work well together:
 
 ---
 
+## 📋 Feature Management (EXTENSION)
+
+**Status:** 📦 Optional extension
+
+**Location:** `extensions/feature-management/`
+
+**Purpose:** Complete feature request workflow from idea to implementation with sprint planning
+
+### When to Use
+
+- You're planning features across multiple sprints
+- You want structured feature request capture
+- You need sprint planning with roadmap tracking
+- You're using superpowers workflow and want integration
+- You have more features than you can implement immediately
+
+**NOT needed for:**
+- Single-feature projects (no backlog needed)
+- All features implemented immediately (no triage/scheduling needed)
+- Ad-hoc development without sprint structure
+
+### What It Provides
+
+**Three-skill workflow: capture → triage → schedule → implement**
+
+**Skill 1: reporting-features (~2 min per feature)**
+- Interactive feature request capture
+- Auto-incrementing IDs (FEAT-001, FEAT-002, etc.)
+- Duplicate detection with fuzzy matching
+- Stores in features.yaml with status="proposed"
+- Updates docs/features/index.yaml for fast querying
+
+**Skill 2: triaging-features (~1-2 min per feature)**
+- Batch review of proposed features
+- Smart filtering (by category, priority, date)
+- Actions: approve, reject, reprioritize, assign to epic
+- Updates status to "approved" or "rejected"
+- Git commit with detailed changelog
+
+**Skill 3: scheduling-features (~5-10 min per sprint)**
+- Schedule approved features into sprints
+- Create sprint documents in docs/plans/sprints/
+- Optional: Create implementation plans (superpowers integration)
+- Optional: Execute features immediately
+- Auto-generates ROADMAP.md
+- Updates status to "scheduled" or "in-progress"
+
+**Integration with Superpowers:**
+- superpowers:brainstorming → Refine feature requirements
+- superpowers:writing-plans → Create implementation plans
+- superpowers:executing-plans → Execute in batches with review
+- superpowers:subagent-driven-development → Fast iteration with quality gates
+
+### Files Created
+
+```
+project-root/
+├── features.yaml                           # All feature requests
+├── ROADMAP.md                              # Auto-generated roadmap
+└── docs/
+    ├── features/
+    │   └── index.yaml                      # Fast lookup index
+    └── plans/
+        ├── sprints/
+        │   ├── SPRINT-001-core-features.md
+        │   └── SPRINT-002-ux-polish.md
+        └── features/
+            ├── FEAT-001-implementation-plan.md
+            └── FEAT-003-implementation-plan.md
+```
+
+### Installation
+
+**Method 1: Skills (Recommended)**
+
+```bash
+# From dev-toolkit root
+cp -r extensions/feature-management/skills/* .claude/skills/
+```
+
+**Method 2: Global Skills**
+
+```bash
+# Install globally for all projects
+cp -r extensions/feature-management/skills/reporting-features ~/.config/claude/skills/
+cp -r extensions/feature-management/skills/triaging-features ~/.config/claude/skills/
+cp -r extensions/feature-management/skills/scheduling-features ~/.config/claude/skills/
+```
+
+### Quick Start
+
+**Step 1: Capture feature request**
+```
+User: "report a feature"
+Claude Code: [Uses reporting-features skill]
+- Title: "Add medication tracking"
+- Description: "Allow users to track medications..."
+- Category: New Functionality
+- Priority: Must-Have
+→ Creates FEAT-001 with status="proposed"
+```
+
+**Step 2: Triage features**
+```
+User: "triage features"
+Claude Code: [Uses triaging-features skill]
+- Shows all proposed features
+- Filter by priority="must-have"
+- Approve 3 features → status="approved"
+```
+
+**Step 3: Schedule into sprint**
+```
+User: "schedule features"
+Claude Code: [Uses scheduling-features skill]
+- Shows approved features
+- Create SPRINT-001: "Core Features Sprint"
+- Select 3 features for sprint
+- Optional: Create implementation plans
+- Optional: Execute features
+→ Updates ROADMAP.md, creates sprint document
+```
+
+### Common Workflows
+
+**Weekly Triage Cadence:**
+1. Monday: Triage all new features from last week
+2. Approve Must-Have features immediately
+3. Reject out-of-scope features
+4. Batch-approve Nice-to-Have for later sprints
+
+**Sprint Planning:**
+1. Start of 2-week sprint
+2. Filter approved features by priority="must-have"
+3. Select 5-7 features for sprint
+4. Create implementation plans
+5. Execute throughout sprint
+
+**Quick Implementation:**
+1. Report feature → Approve → Schedule → Execute
+2. Goes from idea to in-progress in single session
+
+### Example Usage
+
+**Scenario: Planning next sprint**
+
+```
+User: "We need to plan Sprint 5 focusing on medication management"
+
+Claude Code: "I'm using the scheduling-features skill to plan your sprint."
+
+[Lists all approved features]
+
+You: [Select 5 features for Sprint 5]
+
+Claude Code: "Do you want to create implementation plans now?"
+
+You: "Yes, create plans"
+
+[For each feature:]
+Claude Code:
+1. Runs superpowers:brainstorming to refine requirements
+2. Runs superpowers:writing-plans to create detailed plan
+3. Asks: "Execute now?"
+
+You: "No, plan only" [for first 3], "Yes, execute now" [for last 2]
+
+Claude Code:
+- Updates features.yaml (5 features scheduled, 2 in-progress)
+- Creates docs/plans/sprints/SPRINT-005-medication-management.md
+- Creates implementation plans for all 5 features
+- Executes last 2 features using superpowers workflow
+- Generates ROADMAP.md
+- Git commit
+```
+
+**Result:**
+- Sprint 5 document created with 5 features
+- 5 implementation plans ready
+- 2 features already in development
+- ROADMAP.md updated with current sprint status
+- All changes committed to git
+
+### Time Investment
+
+- **Installation:** 1 minute (copy skills)
+- **Per feature capture:** ~2 minutes
+- **Per feature triage:** ~1-2 minutes
+- **Per sprint creation:** ~5-10 minutes (without planning)
+- **With implementation planning:** +5-10 minutes per feature
+- **With execution:** +30-60+ minutes per feature
+
+**ROI:**
+- Zero features lost in verbal discussion (100% capture rate)
+- No duplicate features (duplicate detection)
+- Clear sprint planning with roadmap
+- Optional full lifecycle (idea → implementation in one flow)
+
+### Documentation
+
+**Complete documentation:**
+- `extensions/feature-management/README.md` - Full guide
+- `extensions/feature-management/DESIGN.md` - System architecture
+- `extensions/feature-management/TESTING.md` - Test cases
+- `extensions/feature-management/examples/` - Sample files
+
+**Based on:** Health Narrative 2 real-world usage (2+ weeks)
+
+---
+
 ## Troubleshooting Extensions
 
 ### Testing Infrastructure Issues
@@ -551,6 +761,7 @@ extensions/your-extension/
 | **Bug Reporting** | Instant (included) | All projects in development | ✅ Core |
 | **Testing Infrastructure** | 5-10 min | Projects without E2E tests | 📦 Optional |
 | **Build & Deploy** | 30-60 min | Mobile apps going to production | 📦 Optional |
+| **Feature Management** | 1 min | Projects with feature backlogs & sprint planning | 📦 Optional |
 
 ---
 
