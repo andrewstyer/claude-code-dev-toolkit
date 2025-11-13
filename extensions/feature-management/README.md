@@ -10,11 +10,12 @@ Based on: Health Narrative 2 feature request system (real-world usage)
 
 ## Overview
 
-Three-skill system for managing feature requests from idea to implementation:
+Four-skill system for managing feature requests from idea to implementation:
 
 1. **reporting-features** - Capture feature requests with structured prompting
 2. **triaging-features** - Batch review and prioritization
 3. **scheduling-features** - Sprint planning with optional superpowers integration
+4. **scheduling-implementation-plan** - Convert existing implementation plans into sprint tasks
 
 **Design goals:**
 - Lightweight YAML storage (features.yaml)
@@ -22,6 +23,7 @@ Three-skill system for managing feature requests from idea to implementation:
 - Batch operations for efficiency
 - Optional integration with superpowers for full lifecycle
 - Auto-generated roadmap
+- Bridge standalone implementation plans into sprint system
 
 ---
 
@@ -195,6 +197,49 @@ Claude Code: [Uses scheduling-features skill]
 
 ---
 
+### scheduling-implementation-plan
+
+**Purpose:** Convert existing implementation plans into sprint tasks and update roadmap
+
+**Usage:**
+- After creating implementation plan with superpowers:writing-plans (outside feature workflow)
+- When you have implementation plans that need sprint scheduling
+- When you want to break a large plan into multiple sprints
+- To bridge standalone plans into the feature-management system
+
+**What it does:**
+1. Lists all implementation plans in docs/plans/
+2. User selects which plan to schedule
+3. Parses tasks, dependencies, and estimates from plan
+4. Asks: Create single sprint, multiple sprints, or add to existing sprint?
+5. Breaks tasks into sprint-sized chunks (if multiple sprints)
+6. Updates ROADMAP.md with task-level detail and dependencies
+7. Creates/updates sprint documents in docs/plans/sprints/
+8. Links implementation plan to sprints (adds metadata to plan)
+9. If FEAT-XXX plan: Updates features.yaml with sprint_id and status="scheduled"
+10. Git commit
+
+**Output:**
+- ROADMAP.md (updated with tasks from plan)
+- docs/plans/sprints/SPRINT-XXX-[name].md (sprint documents with task detail)
+- Implementation plan updated with sprint metadata
+- features.yaml updated (if FEAT-XXX plan)
+- Git commit
+
+**Time:**
+- Single sprint: ~2-3 minutes
+- Multiple sprints: ~5-7 minutes
+- Depends on plan complexity
+
+**Difference from scheduling-features:**
+- scheduling-features: Works with feature requests (features.yaml), creates plans optionally
+- scheduling-implementation-plan: Works with existing plans, converts to sprint tasks
+- Use this when you already have an implementation plan created outside the feature workflow
+
+**See:** [skills/scheduling-implementation-plan/SKILL.md](skills/scheduling-implementation-plan/SKILL.md)
+
+---
+
 ## Integration with Superpowers
 
 **scheduling-features integrates with superpowers workflow:**
@@ -245,6 +290,47 @@ For FEAT-001:
 **Option 3: Schedule + plan + execute**
 - Full lifecycle in one session
 - Best for small features or focused sprints
+
+**Option 4: Bridge standalone plans (NEW)**
+- Create plan with superpowers:writing-plans first
+- Then use scheduling-implementation-plan to convert to sprints
+- Useful when plan creation is separate from sprint planning
+
+### Bridging Standalone Plans Example
+
+```
+User: "Create implementation plan for authentication refactor"
+
+Claude Code:
+1. Runs superpowers:brainstorming
+   - Refines authentication requirements
+   - Validates security approach
+
+2. Runs superpowers:writing-plans
+   - Creates docs/plans/authentication-refactor-plan.md
+   - 15 detailed tasks with verification steps
+
+User: "Schedule that plan into sprints"
+
+Claude Code: [Uses scheduling-implementation-plan skill]
+3. Lists available plans, user selects authentication-refactor-plan.md
+4. Parses 15 tasks with dependencies
+5. Suggests breakdown:
+   - Sprint 1: Core changes (Tasks 1-5)
+   - Sprint 2: Integration (Tasks 6-10)
+   - Sprint 3: Testing & rollout (Tasks 11-15)
+6. User approves breakdown
+7. Updates ROADMAP.md with all 15 tasks
+8. Creates 3 sprint documents
+9. Links plan to sprints (adds metadata)
+10. Git commit
+
+Result:
+- 3 sprints created with task-level detail
+- ROADMAP.md shows all tasks with dependencies
+- Implementation plan linked to sprints
+- Ready to execute with superpowers:executing-plans
+```
 
 ---
 

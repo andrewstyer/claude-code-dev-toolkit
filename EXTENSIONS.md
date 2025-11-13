@@ -500,7 +500,7 @@ Extensions work well together:
 
 ### What It Provides
 
-**Three-skill workflow: capture → triage → schedule → implement**
+**Four-skill workflow: capture → triage → schedule → implement**
 
 **Skill 1: reporting-features (~2 min per feature)**
 - Interactive feature request capture
@@ -524,10 +524,19 @@ Extensions work well together:
 - Auto-generates ROADMAP.md
 - Updates status to "scheduled" or "in-progress"
 
+**Skill 4: scheduling-implementation-plan (~2-7 min per plan)**
+- Convert existing implementation plans into sprint tasks
+- Parses tasks, dependencies, and estimates from any plan
+- Single sprint or multi-sprint breakdown
+- Updates ROADMAP.md with task-level detail
+- Links implementation plan to sprints
+- Bridges standalone plans (created outside feature workflow) into sprint system
+
 **Integration with Superpowers:**
 - superpowers:brainstorming → Refine feature requirements
 - superpowers:writing-plans → Create implementation plans
-- superpowers:executing-plans → Execute in batches with review
+- **NEW:** scheduling-implementation-plan → Convert plans to sprint tasks with roadmap
+- superpowers:executing-plans → Execute from roadmap with task tracking
 - superpowers:subagent-driven-development → Fast iteration with quality gates
 
 ### Files Created
@@ -564,6 +573,7 @@ cp -r extensions/feature-management/skills/* .claude/skills/
 cp -r extensions/feature-management/skills/reporting-features ~/.config/claude/skills/
 cp -r extensions/feature-management/skills/triaging-features ~/.config/claude/skills/
 cp -r extensions/feature-management/skills/scheduling-features ~/.config/claude/skills/
+cp -r extensions/feature-management/skills/scheduling-implementation-plan ~/.config/claude/skills/
 ```
 
 ### Quick Start

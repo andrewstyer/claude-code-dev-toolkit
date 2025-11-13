@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Optional: Execute features immediately (superpowers:executing-plans or subagent-driven-development)
     - Auto-generates ROADMAP.md
     - Updates status to "scheduled" or "in-progress"
+  - **skills/scheduling-implementation-plan/** - Convert existing plans to sprint tasks (NEW)
+    - Bridges standalone implementation plans into sprint system
+    - Parses tasks, dependencies, and estimates from any plan
+    - Single sprint or multi-sprint breakdown with intelligent suggestions
+    - Updates ROADMAP.md with task-level detail and dependencies
+    - Links implementation plan to sprints (adds metadata)
+    - Works with superpowers:writing-plans output or manual plans
+    - If FEAT-XXX plan: Updates features.yaml with sprint_id
+    - ~2-7 minutes depending on plan complexity
   - **README.md** - Complete usage guide with workflows and examples
   - **DESIGN.md** - System architecture from HN2 production use
   - **TESTING.md** - Test cases and validation procedures
@@ -42,9 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Integration:**
 - Full superpowers workflow integration
+- **NEW:** Bridge standalone plans to sprint system (scheduling-implementation-plan)
+- superpowers:writing-plans → scheduling-implementation-plan → ROADMAP.md with tasks
+- superpowers:executing-plans can read ROADMAP.md for task-level execution
 - Optional implementation planning
 - Optional immediate execution
-- Flexible workflows (schedule only, plan later, or full lifecycle)
+- Flexible workflows (schedule only, plan later, bridge standalone plans, or full lifecycle)
 
 ### Changed
 
@@ -52,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added comprehensive Feature Management section
 - Updated Quick Reference table with feature-management extension
 - Added example workflows for feature request → sprint planning
+- Updated with scheduling-implementation-plan skill (4 skills total now)
+- Added superpowers integration notes for bridging standalone plans
 
 **README.md:**
 - Added feature-management to Optional Extensions table
