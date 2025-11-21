@@ -155,3 +155,53 @@ get_item_title() {
     yq eval ".bugs[] | select(.id == \"$item_id\") | .title" bugs.yaml 2>/dev/null || echo ""
   fi
 }
+
+# Extract common themes from work item titles
+# Usage: extract_sprint_themes "FEAT-001 FEAT-002 BUG-003"
+# Returns: theme string (e.g., "Timeline and Document Management")
+extract_sprint_themes() {
+  local item_ids="$@"
+
+  # Collect all titles
+  local titles=""
+  for item_id in $item_ids; do
+    local title=$(get_item_title "$item_id")
+    if [ -n "$title" ]; then
+      titles="$titles $title"
+    fi
+  done
+
+  if [ -z "$titles" ]; then
+    echo "Bug Fixes and Features"
+    return
+  fi
+
+  # Extract keywords (simplified - production would use NLP)
+  # Look for common words (nouns) appearing multiple times
+
+  # Count word frequency
+  local keywords=$(echo "$titles" | tr '[:upper:]' '[:lower:]' | tr -s '[:space:]' '\n' |
+    grep -Ev '^(a|an|the|and|or|but|in|on|at|to|for|of|with|by|from|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|may|might|can|fix|add|update|improve|create|delete|remove)$' |
+    sort | uniq -c | sort -rn | head -3 | awk '{print $2}')
+
+  if [ -z "$keywords" ]; then
+    echo "Bug Fixes and Features"
+    return
+  fi
+
+  # Capitalize and combine keywords
+  local theme=""
+  for word in $keywords; do
+    local cap_word=$(echo "$word" | sed 's/./\U&/')
+    theme="$theme$cap_word and "
+  done
+
+  # Remove trailing " and " and add default suffix
+  theme=$(echo "$theme" | sed 's/ and $//')
+
+  if [ -n "$theme" ]; then
+    echo "$theme"
+  else
+    echo "Bug Fixes and Features"
+  fi
+}
