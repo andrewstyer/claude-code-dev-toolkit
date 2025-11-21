@@ -857,6 +857,66 @@ Changes committed to git.
 Next: Start with SPRINT-009, then proceed to SPRINT-010
 ```
 
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Discover or load plan**
+
+```bash
+if [ -z "$plan_file" ]; then
+  # Auto-discover
+  plan_file=$(find_most_recent_unscheduled_plan)
+else
+  # Use provided filename
+  if [ ! -f "$plan_file" ]; then
+    echo "Error: Plan file not found: $plan_file"
+    exit 1
+  fi
+fi
+```
+
+**Step 2: Count tasks and determine sprint breakdown**
+
+```bash
+task_count=$(grep -c "^## Task\|^### Task\|- \[ \]" "$plan_file")
+sprint_count=$(calculate_sprint_count $task_count)
+
+echo "Plan: $plan_file"
+echo "Tasks: $task_count"
+echo "Sprints: $sprint_count"
+```
+
+**Step 3: Split plan and create sprints**
+
+```bash
+if [ $sprint_count -eq 1 ]; then
+  create_single_sprint "$plan_file" "$task_count"
+else
+  create_multiple_sprints "$plan_file" "$task_count" "$sprint_count"
+fi
+```
+
+**Step 4: Link to feature if applicable**
+
+```bash
+feature_id=$(extract_feature_id "$plan_file")
+if [ -n "$feature_id" ]; then
+  link_feature_to_sprints "$feature_id" "${created_sprint_ids[@]}"
+fi
+```
+
+**Step 5: Update ROADMAP and commit**
+
+```bash
+update_roadmap_with_sprints "${created_sprint_ids[@]}"
+
+git add docs/plans/sprints/ features.yaml ROADMAP.md
+git commit -m "feat: auto-schedule plan $plan_file across $sprint_count sprint(s)"
+```
+
+**Step 6: Display summary**
+
+Display appropriate output format from previous section.
+
 ## Notes
 
 - This skill bridges standalone implementation plans into the sprint system
