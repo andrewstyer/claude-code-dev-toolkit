@@ -310,3 +310,58 @@ check_completion_integrity() {
 
   echo ""
 }
+
+# Main execution
+main() {
+  # Count sprints
+  sprint_count=$(ls docs/plans/sprints/SPRINT-*.md 2>/dev/null | wc -l | tr -d ' ')
+
+  if [ "$sprint_count" -eq 0 ]; then
+    echo "No sprint documents found in docs/plans/sprints/"
+    echo "Nothing to validate."
+    exit 0
+  fi
+
+  echo "Checking $sprint_count sprints..."
+  echo ""
+
+  # Run all checks
+  check_sprint_yaml_consistency
+  check_roadmap_consistency
+  check_status_lifecycle
+  check_completion_integrity
+
+  # Summary
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
+    echo -e "${GREEN}✅ All validation checks passed!${NC}"
+    echo ""
+    echo "Summary: $sprint_count sprints validated, 0 errors, 0 warnings"
+    exit 0
+  elif [ $ERRORS -eq 0 ]; then
+    echo -e "${YELLOW}Summary: $WARNINGS warnings${NC}"
+    echo ""
+    echo "Warnings can be addressed but won't block operations."
+    if [ "$FIX" = true ]; then
+      echo "Run without --fix to see warnings without auto-correction."
+    else
+      echo "Run with --fix to auto-correct some warnings."
+    fi
+    exit 2
+  else
+    echo -e "${RED}Summary: $ERRORS errors, $WARNINGS warnings${NC}"
+    echo ""
+    echo "Errors must be fixed before proceeding."
+    if [ "$VERBOSE" = false ]; then
+      echo "Run with --verbose for detailed explanations."
+    fi
+    if [ "$FIX" = false ]; then
+      echo "Run with --fix to auto-correct some issues."
+    fi
+    exit 1
+  fi
+}
+
+# Run main function
+main
