@@ -578,6 +578,74 @@ sprint_name="Sprint $next_id: $theme"
 - "Timeline and Document Management"
 - "Performance and UX Polish"
 
+## Autonomous Mode - Item Selection Rules
+
+**Priority order for filling sprint capacity:**
+
+```
+1. All P0 bugs (critical) - must fix immediately
+2. All P1 bugs (high priority)
+3. Must-Have features (by priority order in yaml)
+4. Nice-to-Have features (if space remains)
+5. P2 bugs (if space remains)
+
+Stop when: capacity reached OR no more items
+```
+
+**Selection algorithm:**
+
+```bash
+capacity=$velocity  # From velocity calculation
+selected=()
+
+# Step 1: Add all P0 bugs (no limit)
+p0_bugs=$(yq eval '.bugs[] | select(.status == "triaged" and .severity == "P0") | .id' bugs.yaml)
+for bug_id in $p0_bugs; do
+  selected+=("$bug_id")
+done
+
+# Step 2: Add P1 bugs up to capacity
+remaining=$((capacity - ${#selected[@]}))
+if [ $remaining -gt 0 ]; then
+  p1_bugs=$(yq eval '.bugs[] | select(.status == "triaged" and .severity == "P1") | .id' bugs.yaml | head -$remaining)
+  for bug_id in $p1_bugs; do
+    selected+=("$bug_id")
+  done
+fi
+
+# Step 3: Add Must-Have features
+remaining=$((capacity - ${#selected[@]}))
+if [ $remaining -gt 0 ]; then
+  must_have=$(yq eval '.features[] | select(.status == "approved" and .priority == "must-have") | .id' features.yaml | head -$remaining)
+  for feat_id in $must_have; do
+    selected+=("$feat_id")
+  done
+fi
+
+# Step 4: Add Nice-to-Have features
+remaining=$((capacity - ${#selected[@]}))
+if [ $remaining -gt 0 ]; then
+  nice_to_have=$(yq eval '.features[] | select(.status == "approved" and .priority == "nice-to-have") | .id' features.yaml | head -$remaining)
+  for feat_id in $nice_to_have; do
+    selected+=("$feat_id")
+  done
+fi
+
+# Step 5: Add P2 bugs if space
+remaining=$((capacity - ${#selected[@]}))
+if [ $remaining -gt 0 ]; then
+  p2_bugs=$(yq eval '.bugs[] | select(.status == "triaged" and .severity == "P2") | .id' bugs.yaml | head -$remaining)
+  for bug_id in $p2_bugs; do
+    selected+=("$bug_id")
+  done
+fi
+```
+
+**Conservative decisions:**
+- Don't create implementation plans (too time-consuming)
+- Don't execute features automatically (too presumptuous)
+- Just create sprint and schedule items
+
 ## Integration with Other Skills
 
 **Upstream skills:**
