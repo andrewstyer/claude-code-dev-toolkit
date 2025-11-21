@@ -19,6 +19,27 @@ Review and prioritize proposed feature requests in batches. Approve features for
 - Weekly/biweekly triage sessions
 - When backlog needs cleanup
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "triage features"
+- Prompts for each decision with AskUserQuestion
+- Full human control over approval/rejection
+- Estimated time: 1-2 minutes per feature
+
+**Autonomous Mode:**
+- User says "auto-triage features"
+- Auto-detects in-scope vs out-of-scope from existing features
+- Auto-approves clear must-have features in existing categories
+- Auto-rejects clear duplicates (>90% similarity)
+- Keeps proposed status for uncertain cases
+- Estimated time: 5-10 seconds per feature
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: List Proposed Features
