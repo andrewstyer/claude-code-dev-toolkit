@@ -5,6 +5,32 @@ All notable changes to the Claude Code Development Toolkit will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+**Bug Archiving:**
+- **scripts/archive-fixed-bugs.sh** - Archive resolved bugs to keep bugs.yaml manageable
+  - Moves bugs with status="resolved" to archive/bugs/YYYY-MM.yaml
+  - Preserves all bug data with added archived_at timestamp
+  - Keeps nextId counter intact
+  - Organizes archives by month
+  - Provides safety checks and backup/restore on errors
+  - Interactive confirmation before archival
+  - Time: ~10-30 seconds depending on bug count
+  - Invocation: `./scripts/archive-fixed-bugs.sh`
+
+- **docs/archive-bugs-guide.md** - Complete guide to bug archiving
+  - Usage instructions and examples
+  - Workflow integration
+  - Searching archived bugs
+  - Troubleshooting
+  - Best practices
+
+**Documentation Updates:**
+- Updated feature-management README with bugs.yaml archiving section
+- Added troubleshooting entry for large bugs.yaml files
+
 ## [2.2.0] - 2025-11-21
 
 ### Added

@@ -758,6 +758,32 @@ Claude Code:
 
 ---
 
+### Issue: bugs.yaml is getting large
+
+**Symptom:** File has 50+ bugs, hard to navigate active issues
+
+**Solution:**
+```bash
+# Use the archive-fixed-bugs.sh script
+./scripts/archive-fixed-bugs.sh
+```
+
+This script:
+1. Moves all bugs with `status: resolved` to `archive/bugs/YYYY-MM.yaml`
+2. Keeps active bugs in `bugs.yaml`
+3. Preserves `nextId` counter
+4. Adds `archived_at` timestamp
+5. Organizes archives by month
+
+**Prevention:**
+- Run after completing sprints
+- Run monthly cleanup
+- Run when bugs.yaml exceeds 50 bugs
+
+**See:** [Bug Archiving Guide](../../docs/archive-bugs-guide.md)
+
+---
+
 ### Issue: Duplicate features despite detection
 
 **Symptom:** Similar features with different IDs
