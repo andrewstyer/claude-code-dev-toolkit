@@ -109,3 +109,49 @@ check_item_in_commits() {
 
   # Returns: commit SHA if found, empty if not
 }
+
+# Get item status from YAML
+# Usage: get_item_status "BUG-123"
+# Returns: status string (e.g., "triaged", "scheduled", "resolved")
+get_item_status() {
+  local item_id="$1"
+  local item_type="${item_id%%-*}"  # FEAT or BUG
+
+  if [ "$item_type" = "FEAT" ]; then
+    yq eval ".features[] | select(.id == \"$item_id\") | .status" features.yaml 2>/dev/null || echo ""
+  else
+    yq eval ".bugs[] | select(.id == \"$item_id\") | .status" bugs.yaml 2>/dev/null || echo ""
+  fi
+}
+
+# Update item status in YAML
+# Usage: update_item_status "BUG-123" "resolved"
+update_item_status() {
+  local item_id="$1"
+  local new_status="$2"
+  local item_type="${item_id%%-*}"
+
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  if [ "$item_type" = "FEAT" ]; then
+    yq eval "(.features[] | select(.id == \"$item_id\") | .status) = \"$new_status\"" -i features.yaml
+    yq eval "(.features[] | select(.id == \"$item_id\") | .updated_at) = \"$timestamp\"" -i features.yaml
+  else
+    yq eval "(.bugs[] | select(.id == \"$item_id\") | .status) = \"$new_status\"" -i bugs.yaml
+    yq eval "(.bugs[] | select(.id == \"$item_id\") | .updated_at) = \"$timestamp\"" -i bugs.yaml
+  fi
+}
+
+# Get item title from YAML
+# Usage: get_item_title "FEAT-001"
+# Returns: item title string
+get_item_title() {
+  local item_id="$1"
+  local item_type="${item_id%%-*}"
+
+  if [ "$item_type" = "FEAT" ]; then
+    yq eval ".features[] | select(.id == \"$item_id\") | .title" features.yaml 2>/dev/null || echo ""
+  else
+    yq eval ".bugs[] | select(.id == \"$item_id\") | .title" bugs.yaml 2>/dev/null || echo ""
+  fi
+}
