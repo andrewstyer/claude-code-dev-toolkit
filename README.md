@@ -2,11 +2,28 @@
 
 **Reusable session management and workflow system for Claude Code projects**
 
-**Current Version:** v2.1.2 (November 2025) - Now with unified bug + feature sprint planning!
+**Current Version:** v2.1.3 (November 2025) - Complete sprint lifecycle with retrospectives!
 
 ---
 
 ## ⚡ What's New
+
+### v2.1.3 (November 2025) - Sprint Completion
+
+**NEW: Complete sprints with retrospectives and validation!**
+- **completing-sprints skill** - Systematic sprint completion workflow
+  - Interactive mode (human-led) and Autonomous mode (Claude-led)
+  - Auto-detect completion from project state (yaml, roadmap, plans, git)
+  - Handle incomplete items (backlog/next sprint/keep)
+  - Generate retrospectives with statistics and notes
+  - Track velocity and completion rates
+- **validate-sprint-data.sh script** - Data consistency validation
+  - Validates sprint docs ↔ YAML ↔ ROADMAP.md consistency
+  - Auto-fix mode for correctable issues
+  - Integrated into completing-sprints workflow
+- **Complete sprint lifecycle:** create → work → complete → retrospect → repeat
+
+**[See CHANGELOG.md for full details →](CHANGELOG.md)**
 
 ### v2.1.2 (November 2025) - Unified Sprint Planning
 

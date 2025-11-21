@@ -1,0 +1,60 @@
+nextId: 4
+
+bugs:
+  # Resolved bug from SPRINT-001
+  - id: BUG-001
+    title: Timeline crashes on scroll
+    severity: P0
+    status: resolved
+    observed: App crashes when scrolling through timeline beyond 50 entries
+    expected: Timeline should scroll smoothly through all entries
+    reproSteps:
+      - Open app
+      - Navigate to Timeline screen
+      - Scroll down past 50 entries
+      - App crashes
+    reportedDate: "2025-11-08"
+    device: iPhone 14 Pro, iOS 17.1
+    sprint_id: SPRINT-001
+    scheduled_at: "2025-11-07T10:00:00Z"
+    resolved_at: "2025-11-15T16:30:00Z"
+    updated_at: "2025-11-21T14:30:00Z"
+    e2eTest: .maestro/flows/bugs/BUG-001-timeline-crash.yaml
+    notes: Fixed infinite scroll pagination logic. Root cause was improper state management.
+
+  # Bug moved to SPRINT-002 from SPRINT-001
+  - id: BUG-003
+    title: Document upload fails on iPad
+    severity: P1
+    status: in-progress
+    observed: Upload button does nothing when tapped on iPad Pro
+    expected: Should upload document like on iPhone
+    reproSteps:
+      - Open app on iPad Pro 11-inch
+      - Navigate to Documents screen
+      - Tap Upload button
+      - Nothing happens
+    reportedDate: "2025-11-12"
+    device: iPad Pro 11-inch, iOS 18.1
+    sprint_id: SPRINT-002
+    moved_from: SPRINT-001
+    scheduled_at: "2025-11-07T10:00:00Z"
+    updated_at: "2025-11-21T14:30:00Z"
+    e2eTest: .maestro/flows/bugs/BUG-003-ipad-upload-fail.yaml
+    notes: Root cause identified - iPad-specific file picker behavior. Awaiting iPad device for testing.
+
+  # Triaged bug, not yet scheduled
+  - id: BUG-002
+    title: Date picker shows wrong format
+    severity: P2
+    status: triaged
+    observed: Date picker displays MM/DD/YYYY instead of DD/MM/YYYY for UK users
+    expected: Should respect user's locale settings
+    reproSteps:
+      - Set device locale to en-GB
+      - Open any date picker in app
+      - Format shows MM/DD/YYYY
+    reportedDate: "2025-11-10"
+    device: iPhone 13, iOS 17.0
+    updated_at: "2025-11-14T09:20:00Z"
+    notes: Low priority, affects internationalization. Will address in future sprint.

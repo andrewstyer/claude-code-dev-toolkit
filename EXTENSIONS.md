@@ -500,7 +500,7 @@ Extensions work well together:
 
 ### What It Provides
 
-**Four-skill workflow: capture → triage → schedule → implement**
+**Six-skill workflow: capture → triage → schedule → implement → complete**
 
 **Skill 1: reporting-features (~2 min per feature)**
 - Interactive feature request capture
@@ -531,6 +531,26 @@ Extensions work well together:
 - Updates ROADMAP.md with task-level detail
 - Links implementation plan to sprints
 - Bridges standalone plans (created outside feature workflow) into sprint system
+
+**Skill 5: scheduling-work-items (~3-5 min per sprint)**
+- Unified sprint planning with bugs AND features together
+- Prioritize across bugs vs features (P0 vs Must-Have)
+- Capacity planning showing total items before committing
+- Creates sprints with mixed bugs and features sections
+- Updates both bugs.yaml and features.yaml with sprint_id
+- Generates ROADMAP.md with unified bugs + features view
+
+**Skill 6: completing-sprints (~5-10 min interactive, ~2-3 min autonomous) - NEW**
+- Systematic sprint completion with retrospectives
+- Interactive mode: Human-led review with AskUserQuestion prompts
+- Autonomous mode: Auto-detect completion from project state
+- Marks bugs as resolved/unresolved, features as completed/partial/incomplete
+- Handles incomplete items (return to backlog, move to next sprint, or keep)
+- Sets completion type (successful/partial/pivoted)
+- Optional retrospective generation with stats and manual notes
+- Updates all files (bugs.yaml, features.yaml, sprint docs, ROADMAP.md)
+- Runs validation script to ensure data consistency
+- Git commit with detailed statistics and changelog
 
 **Integration with Superpowers:**
 - superpowers:brainstorming → Refine feature requirements
@@ -608,6 +628,18 @@ Claude Code: [Uses scheduling-features skill]
 - Optional: Create implementation plans
 - Optional: Execute features
 → Updates ROADMAP.md, creates sprint document
+```
+
+**Step 4: Complete sprint**
+```
+User: "complete sprint"
+Claude Code: [Uses completing-sprints skill]
+- Shows active sprints
+- User selects SPRINT-001
+- Reviews completion status
+- Handles incomplete items
+- Generates retrospective
+→ Updates all files, validates consistency, commits
 ```
 
 ### Common Workflows

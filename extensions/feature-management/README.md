@@ -1,22 +1,23 @@
 # Feature Management Extension
 
-**Complete feature request workflow: capture → triage → schedule → implement**
+**Complete feature request workflow: capture → triage → schedule → implement → complete**
 
-Version: 1.0
-Last Updated: 2025-11-14
+Version: 1.1
+Last Updated: 2025-11-21
 Based on: Health Narrative 2 feature request system (real-world usage)
 
 ---
 
 ## Overview
 
-Five-skill system for managing features and bugs from idea to implementation:
+Six-skill system for managing features and bugs from idea to implementation:
 
 1. **reporting-features** - Capture feature requests with structured prompting
 2. **triaging-features** - Batch review and prioritization
 3. **scheduling-features** - Sprint planning with features only
 4. **scheduling-implementation-plan** - Convert existing implementation plans into sprint tasks
-5. **scheduling-work-items** - **NEW** Unified sprint planning with bugs AND features
+5. **scheduling-work-items** - Unified sprint planning with bugs AND features
+6. **completing-sprints** - **NEW** Sprint completion with retrospectives and data consistency
 
 **Design goals:**
 - Lightweight YAML storage (features.yaml + bugs.yaml)
@@ -289,6 +290,81 @@ Claude Code: [Uses scheduling-features skill]
 
 ---
 
+### completing-sprints
+
+**Purpose:** Systematic sprint completion with retrospectives and data consistency validation
+
+**Usage:**
+- User says: "complete sprint" or "end sprint"
+- At end of sprint cycle
+- When reviewing sprint progress
+- Both interactive and autonomous modes supported
+
+**What it does:**
+
+**Interactive Mode (~5-10 minutes per sprint):**
+1. Lists all active/planned sprints
+2. User selects sprint to complete
+3. Displays all work items (bugs + features)
+4. User marks bugs as resolved/unresolved
+5. User marks features as completed/partial/incomplete
+6. For incomplete items: asks how to handle (backlog/next sprint/keep)
+7. Sets completion type (successful/partial/pivoted)
+8. Optional: Generate retrospective with stats and notes
+9. Updates all files (bugs.yaml, features.yaml, sprint docs, ROADMAP.md)
+10. Runs validation script to ensure consistency
+11. Git commit with detailed changelog
+
+**Autonomous Mode (~2-3 minutes per sprint):**
+1. Auto-selects oldest active sprint
+2. Auto-detects completion from:
+   - bugs.yaml/features.yaml status fields
+   - ROADMAP.md checkboxes
+   - Sprint document checkboxes
+   - Implementation plan task completion
+   - Git commit history
+3. Auto-determines completion type (≥80% = successful, 50-79% = partial, <50% = pivoted)
+4. Auto-handles incomplete items (high-priority → next sprint, others → backlog)
+5. Auto-generates retrospective with stats only
+6. Updates files, validates, commits
+
+**Output:**
+- bugs.yaml updated (resolved bugs keep sprint_id, incomplete bugs handled per disposition)
+- features.yaml updated (completed features keep sprint_id, partial completion tracked)
+- docs/plans/sprints/SPRINT-XXX-[name].md (status: completed, duration, completion type)
+- docs/plans/sprints/retrospectives/SPRINT-XXX-retrospective.md (optional)
+- docs/plans/sprints/SPRINT-YYY-[name].md (updated if items moved to next sprint)
+- ROADMAP.md (sprint moved to completed section)
+- Index files updated
+- Git commit with statistics
+
+**Incomplete Item Handling:**
+- **Return to backlog:** Remove sprint_id, reset status to triaged/approved
+- **Move to next sprint:** Update sprint_id, append to next sprint document
+- **Keep in current sprint:** Leave sprint_id for historical reference
+
+**Validation Script:**
+- `scripts/validate-sprint-data.sh` - Ensures data consistency
+- Validates sprint docs ↔ YAML ↔ ROADMAP.md consistency
+- Checks status lifecycle validity
+- Catches orphaned references
+- Verifies completion integrity
+- Runs before commit in completing-sprints workflow
+
+**Time:**
+- Interactive mode: ~5-10 minutes per sprint
+- Autonomous mode: ~2-3 minutes per sprint
+- Includes validation and git commit
+
+**Difference from other skills:**
+- scheduling-work-items: Creates sprints → completing-sprints: Ends sprints
+- Works with sprints created by any scheduling skill
+- Handles both unified (bugs + features) and feature-only sprints
+
+**See:** [skills/completing-sprints/SKILL.md](skills/completing-sprints/SKILL.md)
+
+---
+
 ## Integration with Superpowers
 
 **scheduling-features integrates with superpowers workflow:**
@@ -510,6 +586,61 @@ Claude Code:
 ```
 
 **Result:** Feature goes from idea to in-progress in single session
+
+---
+
+### Workflow 4: Sprint Completion
+
+**End of 2-week sprint:**
+```
+User: "complete sprint"
+Claude Code: [Uses completing-sprints skill]
+- Shows all active sprints
+- User selects SPRINT-005
+
+Claude Code:
+- Displays 7 work items (5 features, 2 bugs)
+- Shows current status from bugs.yaml/features.yaml
+
+User: [Marks completion]
+- Features: 3 completed, 1 partial (75%), 1 incomplete
+- Bugs: 1 resolved, 1 unresolved
+
+Claude Code: "How should incomplete items be handled?"
+User: "Move to next sprint"
+
+Claude Code:
+- Creates SPRINT-006 document
+- Moves 2 incomplete items to SPRINT-006
+- Calculates stats (57% completion rate)
+- Sets completion type: "partial"
+
+User: "Create retrospective with notes"
+
+Claude Code: [Prompts for retrospective notes]
+- What went well?
+- What didn't go well?
+- Action items for next sprint?
+
+User: [Provides notes]
+
+Claude Code:
+- Updates bugs.yaml (1 resolved, 1 moved to SPRINT-006)
+- Updates features.yaml (3 completed, 1 partial moved, 1 moved)
+- Updates SPRINT-005 document (status: completed)
+- Creates SPRINT-006 document (2 items from SPRINT-005)
+- Generates retrospective: docs/plans/sprints/retrospectives/SPRINT-005-retrospective.md
+- Updates ROADMAP.md (SPRINT-005 → completed, SPRINT-006 → active)
+- Runs validation script (all checks pass ✓)
+- Git commit with detailed changelog
+```
+
+**Result:**
+- Sprint properly closed with statistics
+- Retrospective created for learning
+- Incomplete work tracked to next sprint
+- All files consistent (validated)
+- Clear record of what was accomplished
 
 ---
 
