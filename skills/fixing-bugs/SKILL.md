@@ -17,6 +17,28 @@ Fix individual bug by ID using systematic debugging and TDD workflow. Updates bu
 - After triage when ready to start fixing
 - Anytime user wants to fix specific bug
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "fix bug BUG-123" (specifies bug ID)
+- User selects specific bug to fix
+- Full human control over bug selection
+- Estimated time: 30-60 minutes (same as autonomous, just selection differs)
+
+**Autonomous Mode:**
+- User says "auto-fix bug" (no bug ID specified)
+- Auto-selects highest priority unresolved bug
+- Priority: P0 in sprint → P0 triaged → P1 in sprint → P1 triaged → P2
+- Prefers bugs with E2E tests (easier to verify fix)
+- Asks for confirmation if multiple P0 bugs (too critical to guess)
+- Estimated time: 30-60 minutes (same debugging process)
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Specifies bug ID: Use that specific bug
+- Otherwise: Prompt user to select bug
+
 ## Process
 
 ### Phase 1: Load Bug Details
