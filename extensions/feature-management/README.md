@@ -10,14 +10,17 @@ Based on: Health Narrative 2 feature request system (real-world usage)
 
 ## Overview
 
-Six-skill system for managing features and bugs from idea to implementation:
+Seven-skill system for managing features and bugs from idea to implementation:
 
-1. **reporting-features** - Capture feature requests with structured prompting
-2. **triaging-features** - Batch review and prioritization
-3. **scheduling-features** - Sprint planning with features only
-4. **scheduling-implementation-plan** - Convert existing implementation plans into sprint tasks
-5. **scheduling-work-items** - Unified sprint planning with bugs AND features
-6. **completing-sprints** - **NEW** Sprint completion with retrospectives and data consistency
+| Skill | Description | Time (Interactive / Autonomous) |
+|-------|-------------|--------------------------------|
+| **triaging-bugs** | Triage reported bugs (interactive + autonomous) | ~1-2 min/bug / ~5-10 sec/bug |
+| **triaging-features** | Triage proposed features (interactive + autonomous) | ~1-2 min/feature / ~5-10 sec/feature |
+| **scheduling-work-items** | Schedule bugs + features into sprints (interactive + autonomous) | ~5-10 min / ~2-3 min |
+| **scheduling-features** | Schedule features-only sprints (interactive + autonomous) | ~5-10 min / ~2-3 min |
+| **scheduling-implementation-plan** | Schedule plans to sprints (interactive + autonomous) | ~2-7 min / ~1-2 min |
+| **fixing-bugs** | Fix bugs with auto-selection (interactive + autonomous) | ~30-60 min (same for both) |
+| **completing-sprints** | Complete sprints systematically (interactive + autonomous) | ~5-10 min / ~2-3 min |
 
 **Design goals:**
 - Lightweight YAML storage (features.yaml + bugs.yaml)
@@ -362,6 +365,38 @@ Claude Code: [Uses scheduling-features skill]
 - Handles both unified (bugs + features) and feature-only sprints
 
 **See:** [skills/completing-sprints/SKILL.md](skills/completing-sprints/SKILL.md)
+
+---
+
+## Autonomous Modes
+
+All skills now support autonomous operation with "auto-" prefix invocation.
+
+**Usage:**
+- Interactive: "triage bugs" (default, prompts for decisions)
+- Autonomous: "auto-triage bugs" (auto-detects, no prompts)
+
+**Aggressiveness Levels:**
+
+| Skill | Level | Rationale | Time Savings |
+|-------|-------|-----------|--------------|
+| triaging-bugs | Aggressive | Easy to undo, high value | 10-20x faster |
+| triaging-features | Aggressive | Easy to undo, high value | 8-15x faster |
+| scheduling-work-items | Moderate | Medium risk, needs velocity | 2-5x faster |
+| scheduling-features | Moderate | Medium risk, needs velocity | 2-5x faster |
+| scheduling-implementation-plan | Conservative | Low frequency, complex | 2-3x faster |
+| fixing-bugs | Conservative | Code changes, need confidence | Same speed |
+
+**Shared Infrastructure:**
+
+All autonomous modes use shared functions from `scripts/autonomous-helpers.sh`:
+- detect_bug_severity() - Auto-detect P0/P1/P2 from keywords
+- calculate_sprint_velocity() - Average items per sprint
+- check_item_in_commits() - Scan git for work item patterns
+- get_item_status() / update_item_status() - YAML helpers
+- extract_sprint_themes() - Generate sprint themes
+
+**See:** [scripts/autonomous-helpers.sh](../../scripts/autonomous-helpers.sh)
 
 ---
 
