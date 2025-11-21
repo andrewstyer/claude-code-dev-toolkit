@@ -480,6 +480,106 @@ Note: Run "triage features" (interactive) for manual review.
 - Autonomous: ~5-10 seconds per feature (8 features = 1-2 minutes)
 - **Speedup:** 8-15x faster
 
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Load features from features.yaml**
+
+```bash
+# Filter for proposed features only
+proposed_features=$(yq eval '.features[] | select(.status == "proposed") | .id' features.yaml)
+feature_count=$(echo "$proposed_features" | wc -l | tr -d ' ')
+
+echo "Found $feature_count proposed features to triage"
+```
+
+**Step 2: Extract existing categories**
+
+```bash
+# Get categories from approved features
+existing_categories=$(yq eval '.features[] | select(.status == "approved") | .category' features.yaml | sort -u)
+```
+
+**Step 3: Process each feature**
+
+```bash
+approved_count=0
+rejected_count=0
+kept_count=0
+
+for feature_id in $proposed_features; do
+  # Extract feature data
+  title=$(yq eval ".features[] | select(.id == \"$feature_id\") | .title" features.yaml)
+  category=$(yq eval ".features[] | select(.id == \"$feature_id\") | .category" features.yaml)
+  priority=$(yq eval ".features[] | select(.id == \"$feature_id\") | .priority" features.yaml)
+
+  # Check for duplicates (>90% similarity)
+  duplicate=$(check_for_duplicate "$feature_id")
+
+  if [ -n "$duplicate" ]; then
+    # Auto-reject duplicate
+    update_item_status "$feature_id" "rejected"
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .rejection_reason) = \"Duplicate of $duplicate\"" -i features.yaml
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .duplicate_of) = \"$duplicate\"" -i features.yaml
+    echo "  ✗ $feature_id: rejected (duplicate of $duplicate)"
+    ((rejected_count++))
+    continue
+  fi
+
+  # Check if category in scope
+  in_scope=false
+  for cat in $existing_categories; do
+    if [ "$category" = "$cat" ]; then
+      in_scope=true
+      break
+    fi
+  done
+
+  # Apply decision rules
+  if [ "$in_scope" = true ] && ([ "$priority" = "must-have" ] || [ "$priority" = "nice-to-have" ]); then
+    # Auto-approve
+    update_item_status "$feature_id" "approved"
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .notes) = \"Auto-approved ($priority, in-scope)\"" -i features.yaml
+    echo "  ✓ $feature_id: approved ($priority, $category)"
+    ((approved_count++))
+  else
+    # Keep as proposed
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .notes) = \"Kept as proposed (needs review)\"" -i features.yaml
+    echo "  • $feature_id: kept as proposed (needs review)"
+    ((kept_count++))
+  fi
+done
+```
+
+**Step 4: Update index and commit**
+
+```bash
+cp features.yaml docs/features/index.yaml
+
+git add features.yaml docs/features/index.yaml
+
+git commit -m "$(cat <<'EOF'
+feat: auto-triage $feature_count features
+
+Auto-Detection Results:
+- $approved_count features approved
+- $rejected_count features rejected (duplicates)
+- $kept_count features kept as proposed
+
+Files updated:
+- features.yaml ($feature_count features processed)
+- docs/features/index.yaml
+
+🤖 Generated with Claude Code (autonomous mode)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Step 5: Display summary**
+
+Display output format from previous section.
+
 ## Success Criteria
 
 ✅ Batch review of multiple features in one session
