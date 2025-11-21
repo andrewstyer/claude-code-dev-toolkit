@@ -340,6 +340,74 @@ Changes committed to git.
 - Nice-to-Have: Next 3-6 months
 - Future: Parking lot for good ideas
 
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Scope Detection
+
+Check if feature category aligns with existing approved features:
+
+```bash
+# Extract categories from approved features
+existing_categories=$(yq eval '.features[] | select(.status == "approved") | .category' features.yaml | sort -u)
+
+# Check if feature category exists
+feature_category=$(yq eval ".features[] | select(.id == \"$feature_id\") | .category" features.yaml)
+
+in_scope=false
+for cat in $existing_categories; do
+  if [ "$feature_category" = "$cat" ]; then
+    in_scope=true
+    break
+  fi
+done
+```
+
+**Detection rules:**
+- Category in existing approved features → In scope
+- Category never used before → Potentially out of scope (needs review)
+- Priority + category combination common → Likely valid
+
+### 2. Priority Validation
+
+Check if priority aligns with category patterns:
+
+```bash
+# Common valid patterns:
+# - new-functionality + must-have → Common, likely valid
+# - performance + future → Unusual, might need review
+# - ux-improvement + nice-to-have → Common pattern
+# - bug-fix + must-have → Should be a bug, not feature
+
+# Count existing features with same category+priority combination
+pattern_count=$(yq eval ".features[] | select(.category == \"$category\" and .priority == \"$priority\")" features.yaml | wc -l)
+
+if [ $pattern_count -gt 0 ]; then
+  pattern_valid=true
+else
+  pattern_valid=false
+fi
+```
+
+### 3. Enhanced Duplicate Detection
+
+Uses enhanced fuzzy matching from reporting-features:
+
+```bash
+# Compare title and description
+# Threshold: 85% similarity for warning, 90% for auto-reject
+
+feature_title=$(yq eval ".features[] | select(.id == \"$feature_id\") | .title" features.yaml)
+feature_desc=$(yq eval ".features[] | select(.id == \"$feature_id\") | .description" features.yaml)
+
+# Check against existing features (simplified implementation)
+existing_features=$(yq eval '.features[] | select(.id != "'$feature_id'") | .title' features.yaml)
+
+for existing_title in $existing_features; do
+  # Calculate similarity (simplified - production would use Levenshtein)
+  # If >90% similar, mark as duplicate
+done
+```
+
 ## Success Criteria
 
 ✅ Batch review of multiple features in one session
