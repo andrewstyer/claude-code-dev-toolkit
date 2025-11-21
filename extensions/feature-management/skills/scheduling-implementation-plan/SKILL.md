@@ -649,6 +649,80 @@ Description: Build medication model with validation
 9. Verify ROADMAP.md updates correctly
 10. Verify sprint documents link to plan
 
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Plan Discovery
+
+If no filename provided, find recent unscheduled plans:
+
+```bash
+# Find all implementation plan files
+plans=$(find docs/plans/ -name "*-plan.md" -o -name "*-implementation-plan.md" | head -10)
+
+# Check which plans are already scheduled
+for plan_file in $plans; do
+  # Extract plan name/ID
+  plan_name=$(basename "$plan_file" | sed 's/-plan.md$//' | sed 's/-implementation-plan.md$//')
+
+  # Check if plan already mentioned in ROADMAP.md or sprint documents
+  if grep -q "$plan_name" ROADMAP.md 2>/dev/null; then
+    echo "  ⊗ $plan_file (already scheduled)"
+  else
+    echo "  ○ $plan_file (unscheduled)"
+    unscheduled_plans+=("$plan_file")
+  fi
+done
+
+# Select most recent unscheduled plan
+if [ ${#unscheduled_plans[@]} -eq 0 ]; then
+  echo "No unscheduled plans found"
+  exit 0
+fi
+
+# Use most recent by file modification time
+selected_plan=$(ls -t "${unscheduled_plans[@]}" | head -1)
+echo "Selected plan: $selected_plan"
+```
+
+### 2. Task Counting
+
+Count tasks in plan:
+
+```bash
+# Count task markers:
+# - "## Task" or "### Task" headings
+# - "- [ ]" checkboxes
+
+task_count=$(grep -c "^## Task\|^### Task\|- \[ \]" "$plan_file")
+
+echo "Found $task_count tasks in plan"
+```
+
+### 3. Sprint Sizing Heuristics
+
+Determine number of sprints based on task count:
+
+```
+≤8 tasks   → 1 sprint (1-2 weeks)
+9-16 tasks → 2 sprints (2-4 weeks)
+17-24 tasks → 3 sprints (3-6 weeks)
+>24 tasks  → 4+ sprints (4-8 weeks)
+```
+
+```bash
+if [ $task_count -le 8 ]; then
+  sprint_count=1
+elif [ $task_count -le 16 ]; then
+  sprint_count=2
+elif [ $task_count -le 24 ]; then
+  sprint_count=3
+else
+  sprint_count=4
+fi
+
+echo "Recommended: $sprint_count sprint(s)"
+```
+
 ## Notes
 
 - This skill bridges standalone implementation plans into the sprint system
