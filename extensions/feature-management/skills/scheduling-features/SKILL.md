@@ -683,6 +683,63 @@ velocity=$(calculate_feature_velocity)
 
 **Cap:** Maximum 8 features per sprint (features take longer than bugs)
 
+### 2. Epic Grouping Detection
+
+Check if features have epic assignments:
+
+```bash
+# Check for epic field in approved features
+features_with_epics=$(yq eval '.features[] | select(.status == "approved" and .epic != null) | .id' features.yaml)
+epic_count=$(echo "$features_with_epics" | wc -l | tr -d ' ')
+
+if [ $epic_count -gt 0 ]; then
+  echo "Found $epic_count features with epic assignments"
+  use_epic_grouping=true
+else
+  echo "No epic assignments, creating single sprint"
+  use_epic_grouping=false
+fi
+```
+
+**Epic grouping strategy:**
+
+```
+IF features have epic assignments:
+  → Group features by epic
+  → Create separate sprint per epic
+  → Sprint name: "Sprint XX: [Epic Name]"
+
+ELSE:
+  → Create single sprint with highest priority features
+  → Sprint name: "Sprint XX: [Theme from titles]"
+```
+
+**Example epic grouping:**
+
+```
+Approved features:
+- FEAT-001: Add login (epic: authentication)
+- FEAT-002: Add logout (epic: authentication)
+- FEAT-005: Add dashboard (epic: core-ui)
+- FEAT-006: Add sidebar (epic: core-ui)
+
+Result:
+- SPRINT-001: Authentication (FEAT-001, FEAT-002)
+- SPRINT-002: Core UI (FEAT-005, FEAT-006)
+```
+
+### 3. Feature Selection (No Epic Grouping)
+
+Priority order:
+
+```
+1. Must-Have features (by order in yaml)
+2. Nice-to-Have features (if space remains)
+3. Future features (if space remains)
+
+Stop when: capacity reached OR no more features
+```
+
 ---
 
 **Version:** 1.0
