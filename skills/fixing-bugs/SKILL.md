@@ -39,6 +39,102 @@ Mode is determined by invocation phrase:
 - Specifies bug ID: Use that specific bug
 - Otherwise: Prompt user to select bug
 
+## Autonomous Mode - Auto-Selection Logic
+
+### 1. Bug Priority Hierarchy
+
+Selection priority order:
+
+```
+1. P0 bugs in current sprint (sprint_id matches active sprint)
+2. P0 bugs triaged/scheduled (not in sprint)
+3. P1 bugs in current sprint
+4. P1 bugs triaged/scheduled
+5. P2 bugs (any status except resolved)
+```
+
+### 2. Current Sprint Detection
+
+```bash
+# Find current active sprint
+current_sprint=$(grep -A 5 "Current Sprint" ROADMAP.md | grep -oE 'SPRINT-[0-9]{3}' | head -1)
+
+if [ -z "$current_sprint" ]; then
+  echo "No active sprint found, selecting from all unresolved bugs"
+fi
+```
+
+### 3. Bug Selection Algorithm
+
+```bash
+# Priority 1: P0 bugs in current sprint
+p0_in_sprint=$(yq eval ".bugs[] | select(.status != \"resolved\" and .severity == \"P0\" and .sprint_id == \"$current_sprint\") | .id" bugs.yaml)
+
+if [ -n "$p0_in_sprint" ]; then
+  bug_count=$(echo "$p0_in_sprint" | wc -l | tr -d ' ')
+
+  if [ $bug_count -eq 1 ]; then
+    # Single P0 bug, auto-select
+    selected_bug="$p0_in_sprint"
+  else
+    # Multiple P0 bugs, ask user (too critical to guess)
+    echo "Found $bug_count P0 bugs in current sprint:"
+    echo "$p0_in_sprint"
+    # Use AskUserQuestion to select
+    exit 0
+  fi
+fi
+
+# Priority 2: P0 bugs not in sprint
+if [ -z "$selected_bug" ]; then
+  p0_triaged=$(yq eval ".bugs[] | select(.status == \"triaged\" and .severity == \"P0\") | .id" bugs.yaml | head -1)
+  selected_bug="$p0_triaged"
+fi
+
+# Priority 3: P1 bugs in current sprint
+if [ -z "$selected_bug" ]; then
+  p1_in_sprint=$(yq eval ".bugs[] | select(.status != \"resolved\" and .severity == \"P1\" and .sprint_id == \"$current_sprint\") | .id" bugs.yaml | head -1)
+  selected_bug="$p1_in_sprint"
+fi
+
+# Priority 4: P1 bugs not in sprint
+if [ -z "$selected_bug" ]; then
+  p1_triaged=$(yq eval ".bugs[] | select(.status == \"triaged\" and .severity == \"P1\") | .id" bugs.yaml | head -1)
+  selected_bug="$p1_triaged"
+fi
+
+# Priority 5: P2 bugs
+if [ -z "$selected_bug" ]; then
+  p2_any=$(yq eval ".bugs[] | select(.status != \"resolved\" and .severity == \"P2\") | .id" bugs.yaml | head -1)
+  selected_bug="$p2_any"
+fi
+
+if [ -z "$selected_bug" ]; then
+  echo "No unresolved bugs found"
+  exit 0
+fi
+```
+
+### 4. E2E Test Preference
+
+```bash
+# Check if bug has E2E test
+test_file=".maestro/flows/bugs/${selected_bug}-*.yaml"
+
+if ls $test_file 1> /dev/null 2>&1; then
+  echo "✓ Bug has E2E test: $test_file"
+  has_test=true
+else
+  echo "• Bug has no E2E test (will need manual verification)"
+  has_test=false
+fi
+```
+
+**Conservative behavior:**
+- Ask user if multiple P0 bugs (too critical to pick wrong one)
+- Default to first bug in priority order
+- Prefer bugs with E2E tests when multiple at same priority
+
 ## Process
 
 ### Phase 1: Load Bug Details
