@@ -48,3 +48,93 @@ echo "Sprint Data Validation Report"
 echo "============================="
 echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
+
+# Check 1: Sprint Document ↔ YAML Consistency
+check_sprint_yaml_consistency() {
+  echo "Checking Sprint Document ↔ YAML Consistency..."
+
+  local check_errors=0
+
+  # Find all sprint documents
+  for sprint_doc in docs/plans/sprints/SPRINT-*.md; do
+    [ -e "$sprint_doc" ] || continue
+
+    sprint_id=$(basename "$sprint_doc" | grep -oE 'SPRINT-[0-9]{3}')
+
+    if [ "$VERBOSE" = true ]; then
+      echo "  Validating $sprint_id..."
+    fi
+
+    # Extract work item IDs from sprint document
+    work_items=$(grep -oE '(FEAT|BUG)-[0-9]{3}' "$sprint_doc" | sort -u)
+
+    for item_id in $work_items; do
+      item_type=${item_id%%-*}  # FEAT or BUG
+
+      # Check if work item exists in appropriate YAML file
+      if [ "$item_type" = "FEAT" ]; then
+        yaml_file="features.yaml"
+        if ! yq eval ".features[] | select(.id == \"$item_id\")" "$yaml_file" | grep -q "id:"; then
+          echo -e "  ${RED}✗${NC} $item_id referenced in $sprint_id but not found in $yaml_file"
+          ((check_errors++))
+        fi
+      elif [ "$item_type" = "BUG" ]; then
+        yaml_file="bugs.yaml"
+        if ! yq eval ".bugs[] | select(.id == \"$item_id\")" "$yaml_file" | grep -q "id:"; then
+          echo -e "  ${RED}✗${NC} $item_id referenced in $sprint_id but not found in $yaml_file"
+          ((check_errors++))
+        fi
+      fi
+    done
+  done
+
+  # Check reverse: Items in YAML with sprint_id should be in sprint document
+  if [ -f features.yaml ]; then
+    while IFS= read -r feature_id; do
+      feature_sprint=$(yq eval ".features[] | select(.id == \"$feature_id\") | .sprint_id" features.yaml)
+
+      if [ -n "$feature_sprint" ] && [ "$feature_sprint" != "null" ]; then
+        sprint_doc_pattern="docs/plans/sprints/${feature_sprint}-*.md"
+        sprint_doc_found=$(ls $sprint_doc_pattern 2>/dev/null | head -1)
+
+        if [ -z "$sprint_doc_found" ]; then
+          echo -e "  ${RED}✗${NC} $feature_id has sprint_id=$feature_sprint but sprint document not found"
+          ((check_errors++))
+        elif ! grep -q "$feature_id" "$sprint_doc_found"; then
+          echo -e "  ${RED}✗${NC} $feature_id has sprint_id=$feature_sprint but not listed in sprint document"
+          ((check_errors++))
+        fi
+      fi
+    done < <(yq eval '.features[].id' features.yaml)
+  fi
+
+  if [ -f bugs.yaml ]; then
+    while IFS= read -r bug_id; do
+      bug_sprint=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .sprint_id" bugs.yaml)
+
+      if [ -n "$bug_sprint" ] && [ "$bug_sprint" != "null" ]; then
+        sprint_doc_pattern="docs/plans/sprints/${bug_sprint}-*.md"
+        sprint_doc_found=$(ls $sprint_doc_pattern 2>/dev/null | head -1)
+
+        if [ -z "$sprint_doc_found" ]; then
+          echo -e "  ${RED}✗${NC} $bug_id has sprint_id=$bug_sprint but sprint document not found"
+          ((check_errors++))
+        elif ! grep -q "$bug_id" "$sprint_doc_found"; then
+          echo -e "  ${RED}✗${NC} $bug_id has sprint_id=$bug_sprint but not listed in sprint document"
+          ((check_errors++))
+        fi
+      fi
+    done < <(yq eval '.bugs[].id' bugs.yaml)
+  fi
+
+  if [ $check_errors -eq 0 ]; then
+    echo -e "${GREEN}✅ Sprint Document Consistency${NC}"
+    echo "   - All work items found in YAML files"
+    echo "   - All sprint_id references valid"
+  else
+    echo -e "${RED}❌ Sprint Document Consistency ($check_errors errors)${NC}"
+    ERRORS=$((ERRORS + check_errors))
+  fi
+
+  echo ""
+}
