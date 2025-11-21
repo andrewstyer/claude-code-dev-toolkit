@@ -844,6 +844,54 @@ Changes committed to git.
 Next: Work on SPRINT-005 first, then SPRINT-006
 ```
 
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Calculate feature velocity**
+
+```bash
+velocity=$(calculate_feature_velocity)
+echo "Feature velocity: $velocity features per sprint"
+```
+
+**Step 2: Check for epic grouping**
+
+```bash
+features_with_epics=$(yq eval '.features[] | select(.status == "approved" and .epic != null) | .id' features.yaml)
+
+if [ -n "$features_with_epics" ]; then
+  use_epic_grouping=true
+else
+  use_epic_grouping=false
+fi
+```
+
+**Step 3: Create sprint(s)**
+
+```bash
+if [ "$use_epic_grouping" = true ]; then
+  # Group by epic and create multiple sprints
+  create_epic_sprints
+else
+  # Create single sprint with priority-based selection
+  create_single_feature_sprint
+fi
+```
+
+**Step 4: Update files and commit**
+
+```bash
+# Update features.yaml with sprint_id
+# Create sprint documents
+# Update ROADMAP.md
+
+git add features.yaml docs/plans/sprints/ ROADMAP.md
+git commit -m "feat: auto-schedule $feature_count features across $sprint_count sprint(s)"
+```
+
+**Step 5: Display summary**
+
+Display appropriate output format from previous section.
+
 ---
 
 **Version:** 1.0
