@@ -531,6 +531,36 @@ CONSERVATIVE FALLBACK:
 - Marks bugs as resolved if fix commits found
 - Warns about duplicates but doesn't auto-reject
 
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Triage Complete
+
+Bugs Processed: 12
+
+Auto-Detected:
+  - 2 bugs resolved (found fix commits)
+  - 3 bugs triaged as P0 (critical keywords)
+  - 5 bugs triaged as P1 (error keywords)
+  - 2 bugs triaged as P2 (minor keywords)
+
+Warnings:
+  - BUG-025: Possible duplicate of BUG-018 (85% similar)
+
+Files Updated:
+  - bugs.yaml (12 bugs updated)
+  - docs/bugs/index.yaml
+
+Changes committed to git.
+
+Note: Run "triage bugs" (interactive) for manual review and overrides.
+```
+
+**Time Comparison:**
+- Interactive: ~1-2 minutes per bug (12 bugs = 12-24 minutes)
+- Autonomous: ~5-10 seconds per bug (12 bugs = 1-2 minutes)
+- **Speedup:** 10-20x faster
+
 ## Integration Points
 
 - **reporting-bugs skill:** Reads bugs from bugs.yaml
