@@ -548,6 +548,40 @@ EOF
 )"
 ```
 
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Fix Complete
+
+Bug Selected: BUG-023 - Timeline crashes on scroll (P0)
+Reason: Highest priority unresolved bug in current sprint (SPRINT-007)
+
+Fix Applied:
+  Root Cause: Null pointer in ScrollView handler
+  Solution: Add null check before accessing timeline data
+  Files Modified:
+    - src/components/Timeline.tsx
+    - tests/Timeline.test.tsx
+
+Testing:
+  Unit Tests: All passing (47/47)
+  E2E Test: BUG-023 now passing ✓
+
+Files Updated:
+  - bugs.yaml (BUG-023: in-progress → resolved)
+  - src/components/Timeline.tsx (fix applied)
+  - tests/Timeline.test.tsx (test updated)
+
+Changes committed to git.
+
+Next: Continue with next highest priority bug (BUG-025: Data loss on save)
+```
+
+**Time Comparison:**
+- Interactive: 30-60 minutes (debugging and fixing)
+- Autonomous: 30-60 minutes (same time, just auto-selects bug)
+- **Difference:** Selection only, not debugging process
+
 ## Integration Points
 
 - **systematic-debugging skill:** REQUIRED for root cause investigation
