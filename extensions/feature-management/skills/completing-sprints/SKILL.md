@@ -965,3 +965,208 @@ Next Steps:
 2. Continue work on SPRINT-002 (now has 4 items)
 3. Re-triage backlog items (FEAT-005, FEAT-008) if needed
 ```
+
+## Error Handling
+
+### Error 1: No Active Sprints Found
+
+**Scenario:** User invokes skill but all sprints are completed
+
+**Handling:**
+
+```
+No active sprints to complete.
+
+Active sprints: 0
+Completed sprints: 5
+
+All sprints are already completed. Use scheduling-work-items to create new sprints.
+```
+
+Exit gracefully without error.
+
+### Error 2: Sprint Document Missing
+
+**Scenario:** bugs.yaml/features.yaml reference sprint but sprint doc doesn't exist
+
+**Interactive mode:**
+
+Use AskUserQuestion:
+
+```
+Question: "Sprint document SPRINT-003-*.md not found but referenced by 5 work items. What should we do?"
+Header: "Missing Sprint Doc"
+multiSelect: false
+Options:
+  - Label: "Create sprint document from YAML data"
+    Description: "Generate sprint doc based on work items with sprint_id"
+  - Label: "Skip completing this sprint"
+    Description: "Leave this sprint for manual review"
+  - Label: "Remove sprint references from YAML"
+    Description: "Reset items to triaged/approved status"
+```
+
+**Autonomous mode:**
+- Warn in output
+- Skip completing that sprint
+- Suggest running validation script
+
+### Error 3: Work Item Not Found in YAML
+
+**Scenario:** Sprint doc references FEAT-999 but FEAT-999 not in features.yaml
+
+**Interactive mode:**
+
+Use AskUserQuestion:
+
+```
+Question: "FEAT-999 listed in sprint document but not found in features.yaml. What should we do?"
+Header: "Orphaned Reference"
+multiSelect: false
+Options:
+  - Label: "Remove from sprint document"
+    Description: "Clean up orphaned reference"
+  - Label: "Keep for historical record"
+    Description: "Leave in sprint doc, note in retrospective"
+```
+
+**Autonomous mode:**
+- Warn in output
+- Keep in sprint doc (don't delete data)
+- Mark in validation report
+
+### Error 4: Next Sprint Doesn't Exist
+
+**Scenario:** User wants to move items to next sprint but it doesn't exist
+
+**Interactive mode:**
+
+Use AskUserQuestion:
+
+```
+Question: "Next sprint (SPRINT-004) doesn't exist. How should incomplete items be handled?"
+Header: "Next Sprint Missing"
+multiSelect: false
+Options:
+  - Label: "Create SPRINT-004 now"
+    Description: "Invoke scheduling-work-items to create next sprint"
+  - Label: "Return to backlog instead"
+    Description: "Change action for these items"
+  - Label: "Keep in current sprint"
+    Description: "Leave for reference"
+```
+
+**Autonomous mode:**
+- Default: Return all items to backlog
+- Don't auto-create sprints (too presumptuous)
+
+### Error 5: Git Commit Fails
+
+**Scenario:** Git commit fails (merge conflicts, hooks, permissions, etc.)
+
+**Handling:**
+
+```
+⚠️  Git commit failed. Files have been updated but not committed.
+
+To commit manually:
+git add bugs.yaml features.yaml docs/plans/sprints/ ROADMAP.md
+git commit -m "feat: complete SPRINT-001 - Core Features (partial)"
+
+Error: [git error message]
+```
+
+Files remain updated, user can commit manually.
+
+### Error 6: Conflicting Status
+
+**Scenario:** YAML says status="completed" but user says "incomplete" in interactive mode
+
+**Handling:**
+
+Use AskUserQuestion:
+
+```
+Question: "FEAT-007 has status='completed' in features.yaml but you marked it as incomplete. Which is correct?"
+Header: "Status Conflict"
+multiSelect: false
+Options:
+  - Label: "Trust YAML status"
+    Description: "Keep as completed"
+  - Label: "Trust my input"
+    Description: "Update YAML to incomplete"
+```
+
+**Autonomous mode:**
+- Always trust YAML status (source of truth)
+- Ignore sprint document checkboxes if they conflict
+
+### Error 7: Validation Script Fails
+
+**Scenario:** Validation script finds errors before commit
+
+**Handling:**
+
+```
+❌ Sprint data validation failed. Cannot proceed with commit.
+
+Errors found:
+- SPRINT-003: Missing completion_type field
+- FEAT-007: Invalid status transition
+
+Fix these errors before completing the sprint.
+Run: ./scripts/validate-sprint-data.sh --verbose
+
+Abort sprint completion? (files not committed)
+```
+
+**Interactive mode:** Ask to abort or attempt fix
+**Autonomous mode:** Abort automatically, log errors
+
+## Integration with Other Skills
+
+**Upstream Skills (Create Sprints):**
+- `scheduling-work-items` - Creates sprints with bugs + features
+- `scheduling-features` - Creates feature-only sprints
+- Both create sprint documents that this skill reads and completes
+
+**Downstream Skills (After Completion):**
+- `scheduling-work-items` / `scheduling-features` - Re-schedule items returned to backlog
+- Items appear in "approved features" or "triaged bugs" lists
+
+**Parallel Skills (During Sprint):**
+- `fixing-bugs` - Updates bug status to "resolved" (auto-detected by this skill)
+- `superpowers:executing-plans` - Updates feature status (auto-detected)
+- Manual yaml updates - Respected by this skill
+
+## Files Modified by This Skill
+
+- `bugs.yaml` - Update bug statuses, sprint_ids, add resolved_at/moved_from
+- `features.yaml` - Update feature statuses, sprint_ids, add completed_at/completion_percentage/moved_from
+- `docs/plans/sprints/SPRINT-XXX-[slug].md` - Update status, add completion metadata, check off items
+- `docs/plans/sprints/SPRINT-YYY-[slug].md` - Add moved items (if next sprint)
+- `ROADMAP.md` - Move sprint to completed section, update next sprint
+- `docs/bugs/index.yaml` - Update bug statuses and sprint_ids
+- `docs/features/index.yaml` - Update feature statuses and sprint_ids
+- `docs/plans/sprints/retrospectives/SPRINT-XXX-retrospective.md` - Create retrospective (optional)
+
+## Success Criteria
+
+✅ Support both interactive and autonomous modes
+✅ Complete sprints by marking work items as done/partial/incomplete
+✅ Handle incomplete items with configurable actions (backlog/next sprint/keep)
+✅ Support bug binary completion (resolved/not) and feature partial completion (0-100%)
+✅ Set completion type (successful/partial/pivoted)
+✅ Generate optional retrospectives with stats and manual notes
+✅ Update all project files consistently
+✅ Move incomplete items to next sprint if it exists
+✅ Auto-detect completion from project state
+✅ Run validation before commit
+✅ Create structured git commits with detailed changelogs
+✅ Graceful error handling for all edge cases
+
+---
+
+**Version:** 1.0
+**Last Updated:** 2025-11-21
+**Integrates:** bugs.yaml + features.yaml + sprint documents + ROADMAP.md → systematic sprint completion
