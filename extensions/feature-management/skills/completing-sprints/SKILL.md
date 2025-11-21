@@ -849,3 +849,119 @@ Also update next sprint document (SPRINT-002-*.md) to include moved items:
 Update `docs/bugs/index.yaml` and `docs/features/index.yaml` with new statuses and sprint_ids.
 
 Read each file, update matching entries, write back.
+
+**Step 6: Run Validation Script**
+
+Before committing, run validation to catch any errors:
+
+```bash
+./scripts/validate-sprint-data.sh
+```
+
+**If validation fails:**
+
+Interactive mode:
+- Display errors
+- Ask: "Validation failed. Fix errors and retry? (yes/no)"
+- If yes: Attempt to fix, re-run validation
+- If no: Abort sprint completion (files updated but not committed)
+
+Autonomous mode:
+- Log errors
+- Abort sprint completion (files updated but not committed)
+
+**If validation passes:**
+
+Proceed to git commit.
+
+**Step 7: Git Commit**
+
+Create structured commit with detailed changelog:
+
+```bash
+git add bugs.yaml features.yaml docs/plans/sprints/ docs/bugs/index.yaml docs/features/index.yaml ROADMAP.md
+
+# If retrospective created
+git add docs/plans/sprints/retrospectives/
+
+git commit -m "$(cat <<'EOF'
+feat: complete SPRINT-001 - Core Features (partial)
+
+Sprint: SPRINT-001 - Core Features
+Completion Type: partial
+Duration: 14 days (2025-11-07 to 2025-11-21)
+
+Completion Stats:
+- Total Items: 7 (43% complete)
+- Features: 2/5 completed (40%)
+  - Completed: FEAT-003, FEAT-007
+  - Partial: FEAT-001 (75%)
+  - Incomplete: FEAT-005, FEAT-008
+- Bugs: 1/2 resolved (50%)
+  - Resolved: BUG-001
+  - Unresolved: BUG-003
+
+Incomplete Items (4):
+- Moved to SPRINT-002: 2 items (BUG-003, FEAT-001)
+- Returned to backlog: 2 items (FEAT-005, FEAT-008)
+
+Retrospective: docs/plans/sprints/retrospectives/SPRINT-001-retrospective.md
+
+Files updated:
+- bugs.yaml (1 resolved, 1 moved to SPRINT-002)
+- features.yaml (2 completed, 1 partial moved to SPRINT-002, 2 returned to backlog)
+- docs/plans/sprints/SPRINT-001-core-features.md (status: completed)
+- docs/plans/sprints/SPRINT-002-ux-polish.md (added 2 items from SPRINT-001)
+- ROADMAP.md (moved SPRINT-001 to completed, updated SPRINT-002)
+- Index files updated
+
+Velocity: 3 items completed in 14 days (0.21 items/day)
+EOF
+)"
+```
+
+**If git commit fails:**
+
+- Files are already updated (don't rollback)
+- Display error message
+- Provide manual commit command
+
+**Step 8: Display Summary**
+
+Show user final summary:
+
+```
+✅ Sprint Completed: SPRINT-001 - Core Features
+
+Completion Type: partial
+Duration: 14 days
+Completion Rate: 43%
+
+Work Completed:
+  Features (2): FEAT-003, FEAT-007
+  Bugs (1): BUG-001
+
+Partial Work:
+  FEAT-001: 75% complete → Moved to SPRINT-002
+
+Incomplete Work:
+  Moved to SPRINT-002: BUG-003, FEAT-001
+  Returned to backlog: FEAT-005, FEAT-008
+
+Files Updated:
+  ✓ bugs.yaml
+  ✓ features.yaml
+  ✓ docs/plans/sprints/SPRINT-001-core-features.md
+  ✓ docs/plans/sprints/SPRINT-002-ux-polish.md (updated)
+  ✓ ROADMAP.md
+  ✓ Index files
+
+Retrospective: docs/plans/sprints/retrospectives/SPRINT-001-retrospective.md
+
+Changes committed to git.
+
+Next Steps:
+1. Review retrospective for insights
+2. Continue work on SPRINT-002 (now has 4 items)
+3. Re-triage backlog items (FEAT-005, FEAT-008) if needed
+```
