@@ -646,6 +646,86 @@ fi
 - Don't execute features automatically (too presumptuous)
 - Just create sprint and schedule items
 
+## Autonomous Mode - Sprint Creation
+
+**Sprint metadata generation:**
+
+```bash
+# Get next sprint ID
+next_id=$(yq eval '.nextId' ROADMAP.md 2>/dev/null || echo "1")
+sprint_id=$(printf "SPRINT-%03d" $next_id)
+
+# Generate sprint name
+theme=$(extract_sprint_themes ${selected[@]})
+sprint_name="Sprint $next_id: $theme"
+
+# Generate sprint slug
+slug=$(echo "$theme" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9-]//g')
+
+# Sprint goal
+p0_count=$(echo "${selected[@]}" | tr ' ' '\n' | grep -c '^BUG-' || echo 0)
+must_have_count=$(count_must_have_features "${selected[@]}")
+
+sprint_goal="Address $p0_count critical bugs and $must_have_count must-have features"
+
+# Sprint duration
+sprint_duration="2 weeks"  # Default
+
+# Sprint dates
+start_date=$(date -u +%Y-%m-%d)
+end_date=$(date -u -v+14d +%Y-%m-%d 2>/dev/null || date -u -d '+14 days' +%Y-%m-%d)
+```
+
+**Sprint document structure:**
+
+Create `docs/plans/sprints/${sprint_id}-${slug}.md`:
+
+```markdown
+# ${sprint_name}
+
+**Status:** active
+**Created:** ${start_date}
+**Goal:** ${sprint_goal}
+**Duration:** ${sprint_duration}
+**End Date:** ${end_date}
+
+## Work Items Summary
+
+- Total Items: ${item_count}
+- Bugs: ${bug_count}
+- Features: ${feature_count}
+
+## Bugs
+
+### P0 (Critical)
+[List P0 bugs]
+
+### P1 (High)
+[List P1 bugs]
+
+### P2 (Low)
+[List P2 bugs]
+
+## Features
+
+### Must-Have
+[List must-have features]
+
+### Nice-to-Have
+[List nice-to-have features]
+
+## Progress
+
+- Total Items: ${item_count}
+- Completed: 0 (0%)
+- In Progress: 0
+- Pending: ${item_count}
+
+---
+
+**Last Updated:** ${timestamp}
+```
+
 ## Integration with Other Skills
 
 **Upstream skills:**
