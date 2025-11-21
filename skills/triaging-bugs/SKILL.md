@@ -492,6 +492,45 @@ done
 
 **Action:** Display warning but don't auto-reject (too risky)
 
+## Autonomous Mode - Auto-Decision Rules
+
+**For each bug with status="reported":**
+
+```
+IF fix detected in git commits:
+  → status="resolved"
+  → Add resolved_at timestamp
+  → Add note: "Auto-detected as fixed from git commits"
+
+ELSE IF severity=P0:
+  → status="triaged"
+  → Add note: "Auto-triaged as P0 (critical)"
+  → Optionally offer immediate fix (ask user)
+
+ELSE IF severity=P1:
+  → status="triaged"
+  → Add note: "Auto-triaged as P1 (high priority)"
+
+ELSE IF severity=P2:
+  → status="triaged"
+  → Add note: "Auto-triaged as P2 (low priority)"
+
+IF duplicate detected (>90% similarity):
+  → Display warning: "Possible duplicate of BUG-XXX"
+  → Keep as reported (don't auto-reject)
+  → Add duplicate_candidate field
+
+CONSERVATIVE FALLBACK:
+  When severity unclear → default to P1
+  When duplicate uncertain → keep bug, add warning
+  When fix detection unclear → leave as reported
+```
+
+**Aggressiveness Level:** Aggressive
+- Auto-triages all bugs with clear severity indicators
+- Marks bugs as resolved if fix commits found
+- Warns about duplicates but doesn't auto-reject
+
 ## Integration Points
 
 - **reporting-bugs skill:** Reads bugs from bugs.yaml
