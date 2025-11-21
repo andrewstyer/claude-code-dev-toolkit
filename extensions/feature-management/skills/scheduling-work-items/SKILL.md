@@ -19,6 +19,27 @@ Unified sprint planning that shows both approved features and triaged bugs. Sche
 - Capacity planning for sprint ("We can do 10 items total")
 - After triaging bugs and features separately
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "schedule work items"
+- Prompts for sprint details, item selection, execution decisions
+- Full human control over sprint composition
+- Estimated time: 5-10 minutes per sprint
+
+**Autonomous Mode:**
+- User says "auto-schedule work items"
+- Auto-calculates velocity from completed sprints
+- Auto-selects items based on priority (P0→P1→Must-Have→Nice-to-Have)
+- Auto-generates sprint theme from item titles
+- Creates sprint without prompting for execution
+- Estimated time: 2-3 minutes per sprint
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: Display All Schedulable Work
