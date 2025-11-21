@@ -582,6 +582,79 @@ Next: Continue with next highest priority bug (BUG-025: Data loss on save)
 - Autonomous: 30-60 minutes (same time, just auto-selects bug)
 - **Difference:** Selection only, not debugging process
 
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Auto-select bug**
+
+```bash
+selected_bug=$(auto_select_highest_priority_bug)
+
+if [ -z "$selected_bug" ]; then
+  echo "No unresolved bugs found. All bugs are resolved!"
+  exit 0
+fi
+
+bug_title=$(get_item_title "$selected_bug")
+bug_severity=$(yq eval ".bugs[] | select(.id == \"$selected_bug\") | .severity" bugs.yaml)
+
+echo "Selected: $selected_bug - $bug_title ($bug_severity)"
+echo "Reason: Highest priority unresolved bug"
+```
+
+**Step 2: Update bug status to in-progress**
+
+```bash
+update_item_status "$selected_bug" "in-progress"
+```
+
+**Step 3: Follow systematic-debugging workflow**
+
+```bash
+# Use existing systematic-debugging skill
+# This is already autonomous:
+# - Phase 1: Root cause investigation
+# - Phase 2: Pattern analysis
+# - Phase 3: Hypothesis testing
+# - Phase 4: Implementation and verification
+
+# No changes needed to debugging process
+```
+
+**Step 4: After fix complete, update bug to resolved**
+
+```bash
+update_item_status "$selected_bug" "resolved"
+yq eval "(.bugs[] | select(.id == \"$selected_bug\") | .resolved_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+```
+
+**Step 5: Run E2E test if exists**
+
+```bash
+run_e2e_test_if_exists "$selected_bug"
+```
+
+**Step 6: Create git commit**
+
+```bash
+create_fix_commit "$selected_bug"
+```
+
+**Step 7: Display summary**
+
+Display output format from previous section.
+
+**Step 8: Suggest next bug (Optional)**
+
+```bash
+next_bug=$(auto_select_highest_priority_bug)
+
+if [ -n "$next_bug" ]; then
+  next_title=$(get_item_title "$next_bug")
+  echo ""
+  echo "Next: Continue with $next_bug - $next_title"
+fi
+```
+
 ## Integration Points
 
 - **systematic-debugging skill:** REQUIRED for root cause investigation
