@@ -17,6 +17,27 @@ Review all reported bugs, prioritize by severity, select bugs in batch. Three op
 - During planning/sprint planning phase
 - When reviewing backlog before starting work
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "triage bugs"
+- Prompts for each decision with AskUserQuestion
+- Full human control over severity, status, and disposition
+- Estimated time: 1-2 minutes per bug
+
+**Autonomous Mode:**
+- User says "auto-triage bugs"
+- Auto-detects severity from bug title/description keywords
+- Auto-detects if bug already fixed from git commits
+- Applies aggressive auto-triage rules
+- Displays summary without confirmation prompts
+- Estimated time: 5-10 seconds per bug
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: Read and Summarize Bugs
