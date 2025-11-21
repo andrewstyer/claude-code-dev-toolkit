@@ -203,3 +203,63 @@ Overall: 3/7 items completed (43%)
 ```
 
 Store completion data in variables for later use.
+
+### Phase 1: Select Sprint & Review Completion (Autonomous Mode)
+
+**Auto-Detection Logic:**
+
+**Sprint Selection:**
+- If only one active sprint: Auto-select it
+- If multiple active sprints: Select oldest active sprint (by created_at date)
+- If no active sprints: Exit with message "No active sprints to complete"
+
+**Bug Completion Detection:**
+
+For each bug in sprint:
+
+1. Check bugs.yaml status field:
+   - `status="resolved"` → Bug is resolved ✓
+
+2. If status="in-progress", check git commits:
+   ```bash
+   # Look for commit messages with "fix BUG-XXX" patterns
+   git log --all --grep="fix.*BUG-XXX" --grep="resolve.*BUG-XXX" --grep="BUG-XXX.*fix" -i
+   ```
+   If found recent commits: Consider resolved
+
+3. Conservative default: If unclear, treat as incomplete
+
+**Feature Completion Detection:**
+
+For each feature in sprint:
+
+1. Check features.yaml status field:
+   - `status="completed"` → Feature completed ✓
+
+2. If status="in-progress", calculate partial completion:
+
+   a. If implementation plan exists (`implementation_plan` field):
+      ```bash
+      # Count checked vs unchecked tasks in plan
+      total_tasks=$(grep -c "^- \[ \]" docs/plans/features/FEAT-001-*.md)
+      checked_tasks=$(grep -c "^- \[x\]" docs/plans/features/FEAT-001-*.md)
+      percentage=$((checked_tasks * 100 / total_tasks))
+      ```
+
+   b. Check ROADMAP.md for `[x]` next to feature ID:
+      ```bash
+      grep "FEAT-001" ROADMAP.md | grep -q "\[x\]"
+      ```
+
+   c. Check sprint document for `[x]` next to feature:
+      ```bash
+      grep "FEAT-001" docs/plans/sprints/SPRINT-001-*.md | grep -q "\[x\]"
+      ```
+
+   d. If multiple sources conflict: Use features.yaml status as source of truth
+
+3. Default: If status != "completed" and no clear %, treat as incomplete (0%)
+
+**Display Auto-Detected Summary:**
+
+Show same format as interactive mode summary, then proceed automatically without confirmation.
