@@ -90,3 +90,22 @@ calculate_sprint_velocity() {
   local avg_velocity=$((completed_items / sprint_count))
   echo "$avg_velocity"
 }
+
+# Check if work item appears in git commits with specific pattern
+# Usage: check_item_in_commits "BUG-123" "fix" ["2025-11-01"]
+# Returns: commit SHA if found, empty if not
+check_item_in_commits() {
+  local item_id="$1"     # BUG-XXX or FEAT-XXX
+  local pattern="$2"     # "fix", "implement", "complete"
+  local since_date="${3:-}"  # Optional: only check commits after this date
+
+  local grep_pattern="${pattern}.*${item_id}|${item_id}.*${pattern}"
+
+  if [ -n "$since_date" ]; then
+    git log --all --grep="$grep_pattern" -i --since="$since_date" --oneline 2>/dev/null | head -1
+  else
+    git log --all --grep="$grep_pattern" -i --oneline 2>/dev/null | head -1
+  fi
+
+  # Returns: commit SHA if found, empty if not
+}
