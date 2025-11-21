@@ -408,6 +408,48 @@ for existing_title in $existing_features; do
 done
 ```
 
+## Autonomous Mode - Auto-Decision Rules
+
+**For each feature with status="proposed":**
+
+```
+IF clear duplicate (>90% similarity):
+  → status="rejected"
+  → rejection_reason="Duplicate of FEAT-XXX"
+  → Add duplicate_of field
+  → Add note: "Auto-rejected (duplicate)"
+
+ELSE IF priority=must-have AND category in existing approved:
+  → status="approved"
+  → Add note: "Auto-approved (must-have, in-scope)"
+
+ELSE IF priority=nice-to-have AND category in existing approved:
+  → status="approved"
+  → Add note: "Auto-approved (nice-to-have, in-scope)"
+
+ELSE IF priority=future:
+  → Keep status="proposed"
+  → Add note: "Kept as proposed (future priority, defer decision)"
+
+ELSE IF category NOT in existing approved:
+  → Keep status="proposed"
+  → Add note: "Kept as proposed (new category, needs review)"
+
+ELSE:
+  → Keep status="proposed"
+  → Add note: "Kept as proposed (uncertain, needs review)"
+
+CONSERVATIVE FALLBACK:
+  When unsure → Keep as proposed (don't approve or reject)
+  Only auto-reject clear duplicates (>90%)
+  Only auto-approve when priority+category clearly valid
+```
+
+**Aggressiveness Level:** Aggressive
+- Auto-approves must-have and nice-to-have features in existing categories
+- Auto-rejects clear duplicates (>90% similarity)
+- Keeps uncertain cases as proposed for human review
+
 ## Success Criteria
 
 ✅ Batch review of multiple features in one session
