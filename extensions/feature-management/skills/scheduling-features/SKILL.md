@@ -784,6 +784,66 @@ done
 - Don't execute features (too presumptuous)
 - Maximum 8 features per sprint
 
+## Autonomous Mode - Output Format
+
+**Single Sprint:**
+
+```
+✅ Auto-Schedule Complete
+
+Sprint Created: SPRINT-005 - Core Features
+Capacity: 6 features (based on velocity: 6.1 features/sprint)
+Duration: 2 weeks
+Start: 2025-11-21
+End: 2025-12-05
+
+Features Scheduled:
+  Must-Have (4):
+    • FEAT-042: Medication tracking
+    • FEAT-043: Export PDF
+    • FEAT-044: Document upload
+    • FEAT-045: Timeline view
+
+  Nice-to-Have (2):
+    • FEAT-046: Dark mode
+    • FEAT-047: Offline sync
+
+Files Updated:
+  - features.yaml (6 features: approved → scheduled)
+  - docs/plans/sprints/SPRINT-005-core-features.md
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Use executing-plans or superpowers:writing-plans for features
+```
+
+**Multiple Sprints (Epic Grouping):**
+
+```
+✅ Auto-Schedule Complete
+
+Sprints Created: 2 (grouped by epic)
+
+SPRINT-005: Authentication
+  - Duration: 2 weeks
+  - Features: 2 (FEAT-001, FEAT-002)
+
+SPRINT-006: Core UI
+  - Duration: 2 weeks
+  - Features: 2 (FEAT-005, FEAT-006)
+
+Files Updated:
+  - features.yaml (4 features: approved → scheduled)
+  - docs/plans/sprints/SPRINT-005-authentication.md
+  - docs/plans/sprints/SPRINT-006-core-ui.md
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Work on SPRINT-005 first, then SPRINT-006
+```
+
 ---
 
 **Version:** 1.0
