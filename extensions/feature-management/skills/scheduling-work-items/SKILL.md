@@ -785,6 +785,78 @@ Add sprint to "Current Sprint" or "Active Sprints" section:
 yq eval '.nextId += 1' -i ROADMAP.md
 ```
 
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Schedule Complete
+
+Sprint Created: SPRINT-007 - Bug Fixes and Core Features
+Capacity: 7 items (based on velocity: 7.2 items/sprint)
+Duration: 2 weeks
+Start: 2025-11-21
+End: 2025-12-05
+
+Work Items Scheduled:
+  Bugs (3):
+    • BUG-023: Timeline crashes (P0)
+    • BUG-025: Data loss on save (P0)
+    • BUG-027: Upload fails (P1)
+
+  Features (4):
+    • FEAT-042: Medication tracking (Must-Have)
+    • FEAT-043: Export PDF (Must-Have)
+    • FEAT-045: Dark mode (Nice-to-Have)
+    • FEAT-046: Offline sync (Nice-to-Have)
+
+Files Updated:
+  - bugs.yaml (3 bugs: triaged → scheduled)
+  - features.yaml (4 features: approved → scheduled)
+  - docs/plans/sprints/SPRINT-007-bug-fixes-and-core-features.md
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next Steps:
+  1. Start working on SPRINT-007 items
+  2. Use fixing-bugs or executing-plans for implementation
+
+Note: Run "schedule work items" (interactive) for custom sprint planning.
+```
+
+## Error Handling - Autonomous Mode
+
+**Error 1: Not enough items**
+
+```
+If available_items < 3:
+  → Display: "Not enough items for sprint (need ≥3, have ${available_items})"
+  → Display: "Run 'triage bugs' or 'triage features' to add more items"
+  → Exit without creating sprint
+```
+
+**Error 2: No velocity data**
+
+```
+If velocity = 0:
+  → Use default capacity: 5 items
+  → Add note: "No velocity data, using default capacity"
+  → Continue with sprint creation
+```
+
+**Error 3: ROADMAP.md missing**
+
+```
+If ROADMAP.md not found:
+  → Create ROADMAP.md with default structure
+  → Set nextId to 1
+  → Continue with sprint creation
+```
+
+**Conservative fallbacks:**
+- Always use minimum 3 items, maximum 10 items
+- Default to 5 items if velocity unavailable
+- Default to 2-week duration
+
 ## Integration with Other Skills
 
 **Upstream skills:**
