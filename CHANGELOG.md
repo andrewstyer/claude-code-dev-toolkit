@@ -5,6 +5,143 @@ All notable changes to the Claude Code Development Toolkit will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-11-21
+
+### Added
+
+**Autonomous Modes for All Skills:**
+
+**Shared Infrastructure:**
+- **scripts/autonomous-helpers.sh** - Reusable detection and decision functions
+  - detect_bug_severity() - Auto-detect bug severity from keywords (P0/P1/P2)
+  - calculate_sprint_velocity() - Calculate average items per sprint from completed sprints
+  - check_item_in_commits() - Scan git commits for work item patterns
+  - get_item_status() / update_item_status() - YAML helper functions
+  - extract_sprint_themes() - Generate sprint themes from work item titles
+  - Eliminates code duplication across skills
+  - Single source of truth for detection algorithms
+
+**Wave 1: Triage Skills (Aggressive):**
+- **triaging-bugs autonomous mode** - Auto-triage bugs with severity detection
+  - Auto-detects P0/P1/P2 from title/description keywords
+  - Auto-detects resolved bugs from git commit messages
+  - Auto-triages all bugs with clear severity indicators
+  - Warns about potential duplicates (>80% similarity)
+  - Time: 5-10 seconds per bug (vs 1-2 min interactive)
+  - Invocation: "auto-triage bugs"
+
+- **triaging-features autonomous mode** - Auto-approve/reject features
+  - Auto-detects in-scope vs out-of-scope from existing approved features
+  - Auto-approves must-have and nice-to-have features in existing categories
+  - Auto-rejects clear duplicates (>90% similarity)
+  - Keeps uncertain cases as proposed for human review
+  - Time: 5-10 seconds per feature (vs 1-2 min interactive)
+  - Invocation: "auto-triage features"
+
+**Wave 2: Scheduling Skills (Moderate):**
+- **scheduling-work-items autonomous mode** - Auto-create sprints from backlog
+  - Auto-calculates velocity from completed sprints
+  - Auto-selects items by priority (P0→P1→Must-Have→Nice-to-Have)
+  - Auto-generates sprint theme from item titles
+  - Creates sprint without prompting for execution
+  - Time: 2-3 minutes per sprint (vs 5-10 min interactive)
+  - Invocation: "auto-schedule work items"
+
+- **scheduling-features autonomous mode** - Auto-create feature sprints
+  - Auto-calculates feature-only velocity
+  - Auto-groups features by epic (if assigned)
+  - Auto-selects features by priority
+  - Creates single or multiple sprints based on epic grouping
+  - Time: 2-3 minutes per sprint (vs 5-10 min interactive)
+  - Invocation: "auto-schedule features"
+
+**Wave 3: Polish Skills (Conservative):**
+- **scheduling-implementation-plan autonomous mode** - Auto-schedule plans to sprints
+  - Auto-discovers unscheduled plans (if no filename provided)
+  - Auto-counts tasks and determines sprint breakdown
+  - Auto-splits at natural boundaries (phases, sections)
+  - Auto-links to features (if FEAT-XXX in filename)
+  - Time: 1-2 minutes per plan (vs 2-7 min interactive)
+  - Invocation: "auto-schedule plan [filename]"
+
+- **fixing-bugs autonomous enhancements** - Auto-select bug to fix
+  - Auto-selects highest priority unresolved bug
+  - Priority: P0 in sprint → P0 triaged → P1 in sprint → P1 triaged → P2
+  - Asks for confirmation if multiple P0 bugs (too critical to guess)
+  - Prefers bugs with E2E tests (easier to verify)
+  - Time: Same as interactive (30-60 min), just auto-selects bug
+  - Invocation: "auto-fix bug"
+
+### Changed
+
+**Dual-Mode Operation Pattern:**
+- All 6 skills now support both interactive and autonomous modes
+- Interactive mode: Full human control with prompts (default)
+- Autonomous mode: Auto-detection with conservative fallbacks (opt-in with "auto-" prefix)
+- Mode selection: Determined by invocation phrase ("auto-triage" vs "triage")
+
+**Aggressiveness Levels:**
+- Aggressive (triaging): Easy to undo, high value (auto-triage all)
+- Moderate (scheduling): Medium risk, needs velocity data (auto-schedule with capacity planning)
+- Conservative (polish): Low frequency, complex decisions (auto-select but verify)
+
+**Consistency Across Skills:**
+- All autonomous modes source shared helpers from scripts/autonomous-helpers.sh
+- All autonomous modes display detailed summaries without confirmation prompts
+- All autonomous modes create structured git commits with changelogs
+- All autonomous modes include conservative fallbacks for ambiguous cases
+
+### Benefits
+
+**Speed Improvements:**
+- Triaging: 10-20x faster (1-2 min → 5-10 sec per item)
+- Scheduling: 2-5x faster (5-10 min → 2-3 min per sprint)
+- Bug fixing: Same speed (just auto-selects bug)
+
+**Workflow Automation:**
+Enables fully autonomous workflows:
+```
+auto-triage bugs → auto-schedule work items → auto-fix bug → auto-complete sprint
+```
+
+**Code Quality:**
+- Shared utilities eliminate duplication
+- Single source of truth for detection algorithms
+- Easy to improve algorithms (update one file affects all skills)
+- Testable independently
+
+### Integration
+
+**With Existing Skills:**
+- completing-sprints already had autonomous mode (reference implementation)
+- All 6 new autonomous modes follow the same pattern
+- Backward compatible: interactive mode unchanged, autonomous opt-in
+
+**With Workflow:**
+- Autonomous modes integrate seamlessly with existing workflows
+- Can mix interactive and autonomous (e.g., auto-triage, then manual schedule)
+- Conservative fallbacks ensure safe operation
+
+### Notes
+
+**Use autonomous modes when:**
+- Processing many items quickly (batch operations)
+- Clear priority indicators exist (P0/P1, must-have)
+- Trust auto-detection algorithms
+- Want fast iteration without prompts
+
+**Use interactive modes when:**
+- Uncertain about decisions (new categories, ambiguous severity)
+- Want full control over every decision
+- Complex edge cases that need human judgment
+- Prefer explicit confirmation at each step
+
+**Future enhancements:**
+- Add --dry-run flags for autonomous modes (preview before commit)
+- Add configurable aggressiveness levels (strict/moderate/aggressive)
+- Add machine learning for improved duplicate detection
+- Add integration with CI/CD for automated triaging
+
 ## [2.1.3] - 2025-11-21
 
 ### Added
