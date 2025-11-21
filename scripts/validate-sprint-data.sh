@@ -138,3 +138,58 @@ check_sprint_yaml_consistency() {
 
   echo ""
 }
+
+# Check 2: ROADMAP.md ↔ Sprint Documents
+check_roadmap_consistency() {
+  echo "Checking ROADMAP.md ↔ Sprint Documents..."
+
+  local check_errors=0
+  local check_warnings=0
+
+  if [ ! -f ROADMAP.md ]; then
+    echo -e "  ${YELLOW}⚠${NC} ROADMAP.md not found (optional file)"
+    ((check_warnings++))
+    WARNINGS=$((WARNINGS + check_warnings))
+    echo ""
+    return
+  fi
+
+  # Extract sprint IDs from ROADMAP.md
+  roadmap_sprints=$(grep -oE 'SPRINT-[0-9]{3}' ROADMAP.md | sort -u)
+
+  for sprint_id in $roadmap_sprints; do
+    # Check if sprint document exists
+    sprint_doc_pattern="docs/plans/sprints/${sprint_id}-*.md"
+    sprint_doc_found=$(ls $sprint_doc_pattern 2>/dev/null | head -1)
+
+    if [ -z "$sprint_doc_found" ]; then
+      echo -e "  ${RED}✗${NC} $sprint_id in ROADMAP.md but sprint document not found"
+      ((check_errors++))
+      continue
+    fi
+
+    # Check status consistency
+    roadmap_status=$(grep "$sprint_id" ROADMAP.md | grep -oE '\(([a-z]+)\)' | tr -d '()' | head -1)
+    doc_status=$(grep "^\*\*Status:\*\*" "$sprint_doc_found" | sed 's/\*\*Status:\*\* //')
+
+    if [ -n "$roadmap_status" ] && [ -n "$doc_status" ] && [ "$roadmap_status" != "$doc_status" ]; then
+      echo -e "  ${YELLOW}⚠${NC} $sprint_id status mismatch: ROADMAP=$roadmap_status, doc=$doc_status"
+      ((check_warnings++))
+    fi
+  done
+
+  if [ $check_errors -eq 0 ] && [ $check_warnings -eq 0 ]; then
+    echo -e "${GREEN}✅ ROADMAP.md Consistency${NC}"
+    echo "   - All sprints have corresponding documents"
+    echo "   - Sprint statuses match"
+  elif [ $check_errors -eq 0 ]; then
+    echo -e "${YELLOW}⚠️  ROADMAP.md Consistency ($check_warnings warnings)${NC}"
+    WARNINGS=$((WARNINGS + check_warnings))
+  else
+    echo -e "${RED}❌ ROADMAP.md Consistency ($check_errors errors, $check_warnings warnings)${NC}"
+    ERRORS=$((ERRORS + check_errors))
+    WARNINGS=$((WARNINGS + check_warnings))
+  fi
+
+  echo ""
+}
