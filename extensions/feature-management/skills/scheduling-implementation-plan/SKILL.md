@@ -723,6 +723,59 @@ fi
 echo "Recommended: $sprint_count sprint(s)"
 ```
 
+### 4. Natural Boundary Detection
+
+Look for natural split points in plan:
+
+```bash
+# Look for section headings that indicate phases or waves
+boundaries=$(grep -n "^## \(Phase\|Wave\|Part\|Section\)" "$plan_file" | cut -d: -f1)
+
+if [ -n "$boundaries" ]; then
+  echo "Found natural boundaries at lines: $boundaries"
+  use_natural_boundaries=true
+else
+  echo "No natural boundaries, will split evenly by task count"
+  use_natural_boundaries=false
+fi
+```
+
+**Splitting strategies:**
+
+**Strategy 1: Natural boundaries exist**
+
+```
+IF plan has "## Phase 1", "## Phase 2", etc:
+  → Split at each phase
+  → Create SPRINT-XXX per phase
+  → Sprint name: "Sprint XX: [Plan Name] - Phase 1"
+
+EXAMPLE:
+  Plan with "## Phase 1" (5 tasks), "## Phase 2" (7 tasks)
+  → SPRINT-001: Feature ABC - Phase 1 (5 tasks)
+  → SPRINT-002: Feature ABC - Phase 2 (7 tasks)
+```
+
+**Strategy 2: No natural boundaries**
+
+```
+IF plan has no clear phases:
+  → Split evenly by task count
+  → Tasks 1-8 → Sprint 1
+  → Tasks 9-16 → Sprint 2
+  → etc.
+```
+
+**Strategy 3: Single sprint**
+
+```
+IF task_count ≤ 8:
+  → Create single sprint with all tasks
+  → Sprint name: "Sprint XX: [Plan Name]"
+```
+
+**Conservative fallback:** When boundaries unclear, default to single sprint
+
 ## Notes
 
 - This skill bridges standalone implementation plans into the sprint system
