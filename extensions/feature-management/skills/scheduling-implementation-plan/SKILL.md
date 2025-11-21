@@ -19,6 +19,27 @@ Takes an existing implementation plan (created by superpowers:writing-plans, man
 - When you need to update ROADMAP.md with tasks from an existing plan
 - To bridge standalone implementation plans into the feature-management system
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "schedule plan" or provides plan filename
+- Prompts for plan selection, sprint breakdown, feature linking
+- Full human control over sprint boundaries
+- Estimated time: 2-7 minutes per plan
+
+**Autonomous Mode:**
+- User says "auto-schedule plan [filename]" or "auto-schedule plan"
+- Auto-discovers unscheduled plans if no filename provided
+- Auto-counts tasks and determines sprint breakdown
+- Auto-splits at natural boundaries (phases, sections)
+- Creates sprints without prompting for confirmation
+- Estimated time: 1-2 minutes per plan
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: Select Implementation Plan
