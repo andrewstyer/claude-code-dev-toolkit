@@ -609,6 +609,27 @@ See Phase 6 Step 4 for complete format.
 - Features can be rescheduled if priorities change
 - Multiple sprints can be active simultaneously
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "schedule features"
+- Prompts for sprint details, feature selection, epic grouping
+- Full human control over sprint composition
+- Estimated time: 5-10 minutes per sprint
+
+**Autonomous Mode:**
+- User says "auto-schedule features"
+- Auto-calculates feature-only velocity from completed sprints
+- Auto-groups features by epic (if assigned)
+- Auto-selects features by priority (Must-Have → Nice-to-Have)
+- Creates feature-only sprint without prompting
+- Estimated time: 2-3 minutes per sprint
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ---
 
 **Version:** 1.0
