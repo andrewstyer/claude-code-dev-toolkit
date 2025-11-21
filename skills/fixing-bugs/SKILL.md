@@ -476,6 +476,78 @@ If bug.status !== 'fixed' when trying to archive:
 Bug must be fixed before archiving.
 ```
 
+## Autonomous Mode - Post-Fix Updates
+
+After fix is complete and tests pass:
+
+### 1. Update bugs.yaml
+
+```bash
+# Update bug status to resolved
+update_item_status "$bug_id" "resolved"
+
+# Add resolved_at timestamp
+yq eval "(.bugs[] | select(.id == \"$bug_id\") | .resolved_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+
+# Keep sprint_id for historical reference (don't remove)
+```
+
+### 2. Run E2E Test (If Exists)
+
+```bash
+if [ -f ".maestro/flows/bugs/${bug_id}-*.yaml" ]; then
+  echo "Running E2E test for $bug_id..."
+
+  # Run Maestro test
+  maestro test ".maestro/flows/bugs/${bug_id}-*.yaml"
+
+  if [ $? -eq 0 ]; then
+    echo "✓ E2E test passed"
+    test_passed=true
+  else
+    echo "✗ E2E test failed - fix may be incomplete"
+    test_passed=false
+  fi
+fi
+```
+
+### 3. Update Index Files
+
+```bash
+# Sync bugs.yaml to docs/bugs/index.yaml
+cp bugs.yaml docs/bugs/index.yaml
+```
+
+### 4. Create Git Commit
+
+```bash
+git add bugs.yaml docs/bugs/index.yaml src/ tests/
+
+git commit -m "$(cat <<'EOF'
+fix: resolve $bug_id - $bug_title
+
+Bug: $bug_id
+Severity: $severity
+Sprint: $sprint_id
+
+Root Cause: [from systematic-debugging]
+Solution: [from implementation]
+
+Tests: All passing (XX/XX)
+E2E Test: $test_status
+
+Files Updated:
+- bugs.yaml ($bug_id: in-progress → resolved)
+- [source files modified]
+- [test files modified]
+
+🤖 Generated with Claude Code (autonomous mode)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
 ## Integration Points
 
 - **systematic-debugging skill:** REQUIRED for root cause investigation
