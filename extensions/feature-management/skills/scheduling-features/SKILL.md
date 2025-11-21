@@ -630,6 +630,59 @@ Mode is determined by invocation phrase:
 - Contains "auto-": Use autonomous mode
 - Otherwise: Use interactive mode
 
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Feature-Only Velocity Calculation
+
+Calculate velocity from feature-only completed sprints:
+
+```bash
+# Modified velocity calculation that excludes bugs
+calculate_feature_velocity() {
+  local roadmap_file="${1:-ROADMAP.md}"
+
+  if [ ! -f "$roadmap_file" ]; then
+    echo "0"
+    return 1
+  fi
+
+  local total_features=0
+  local completed_features=0
+  local feature_sprint_count=0
+
+  # Find feature-only sprints (0 bugs)
+  while IFS= read -r sprint_line; do
+    if echo "$sprint_line" | grep -q "completed -"; then
+      # Check if sprint has features and 0 bugs
+      bug_count=$(echo "$sprint_line" | grep -oE '[0-9]+ bugs' | cut -d' ' -f1)
+      feature_count=$(echo "$sprint_line" | grep -oE '[0-9]+ features' | cut -d' ' -f1)
+
+      if [ "$bug_count" = "0" ] && [ -n "$feature_count" ]; then
+        ((feature_sprint_count++))
+        completed_features=$((completed_features + feature_count))
+      fi
+    fi
+  done < "$roadmap_file"
+
+  if [ $feature_sprint_count -eq 0 ]; then
+    # Fall back to general velocity
+    echo $(calculate_sprint_velocity)
+  else
+    local avg_velocity=$((completed_features / feature_sprint_count))
+    echo "$avg_velocity"
+  fi
+}
+
+velocity=$(calculate_feature_velocity)
+```
+
+**Fallback hierarchy:**
+1. Feature-only velocity (if feature sprints exist)
+2. General sprint velocity (if any sprints exist)
+3. Default to 5 features per sprint
+
+**Cap:** Maximum 8 features per sprint (features take longer than bugs)
+
 ---
 
 **Version:** 1.0
