@@ -17,6 +17,124 @@ Fix individual bug by ID using systematic debugging and TDD workflow. Updates bu
 - After triage when ready to start fixing
 - Anytime user wants to fix specific bug
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "fix bug BUG-123" (specifies bug ID)
+- User selects specific bug to fix
+- Full human control over bug selection
+- Estimated time: 30-60 minutes (same as autonomous, just selection differs)
+
+**Autonomous Mode:**
+- User says "auto-fix bug" (no bug ID specified)
+- Auto-selects highest priority unresolved bug
+- Priority: P0 in sprint → P0 triaged → P1 in sprint → P1 triaged → P2
+- Prefers bugs with E2E tests (easier to verify fix)
+- Asks for confirmation if multiple P0 bugs (too critical to guess)
+- Estimated time: 30-60 minutes (same debugging process)
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Specifies bug ID: Use that specific bug
+- Otherwise: Prompt user to select bug
+
+## Autonomous Mode - Auto-Selection Logic
+
+### 1. Bug Priority Hierarchy
+
+Selection priority order:
+
+```
+1. P0 bugs in current sprint (sprint_id matches active sprint)
+2. P0 bugs triaged/scheduled (not in sprint)
+3. P1 bugs in current sprint
+4. P1 bugs triaged/scheduled
+5. P2 bugs (any status except resolved)
+```
+
+### 2. Current Sprint Detection
+
+```bash
+# Find current active sprint
+current_sprint=$(grep -A 5 "Current Sprint" ROADMAP.md | grep -oE 'SPRINT-[0-9]{3}' | head -1)
+
+if [ -z "$current_sprint" ]; then
+  echo "No active sprint found, selecting from all unresolved bugs"
+fi
+```
+
+### 3. Bug Selection Algorithm
+
+```bash
+# Priority 1: P0 bugs in current sprint
+p0_in_sprint=$(yq eval ".bugs[] | select(.status != \"resolved\" and .severity == \"P0\" and .sprint_id == \"$current_sprint\") | .id" bugs.yaml)
+
+if [ -n "$p0_in_sprint" ]; then
+  bug_count=$(echo "$p0_in_sprint" | wc -l | tr -d ' ')
+
+  if [ $bug_count -eq 1 ]; then
+    # Single P0 bug, auto-select
+    selected_bug="$p0_in_sprint"
+  else
+    # Multiple P0 bugs, ask user (too critical to guess)
+    echo "Found $bug_count P0 bugs in current sprint:"
+    echo "$p0_in_sprint"
+    # Use AskUserQuestion to select
+    exit 0
+  fi
+fi
+
+# Priority 2: P0 bugs not in sprint
+if [ -z "$selected_bug" ]; then
+  p0_triaged=$(yq eval ".bugs[] | select(.status == \"triaged\" and .severity == \"P0\") | .id" bugs.yaml | head -1)
+  selected_bug="$p0_triaged"
+fi
+
+# Priority 3: P1 bugs in current sprint
+if [ -z "$selected_bug" ]; then
+  p1_in_sprint=$(yq eval ".bugs[] | select(.status != \"resolved\" and .severity == \"P1\" and .sprint_id == \"$current_sprint\") | .id" bugs.yaml | head -1)
+  selected_bug="$p1_in_sprint"
+fi
+
+# Priority 4: P1 bugs not in sprint
+if [ -z "$selected_bug" ]; then
+  p1_triaged=$(yq eval ".bugs[] | select(.status == \"triaged\" and .severity == \"P1\") | .id" bugs.yaml | head -1)
+  selected_bug="$p1_triaged"
+fi
+
+# Priority 5: P2 bugs
+if [ -z "$selected_bug" ]; then
+  p2_any=$(yq eval ".bugs[] | select(.status != \"resolved\" and .severity == \"P2\") | .id" bugs.yaml | head -1)
+  selected_bug="$p2_any"
+fi
+
+if [ -z "$selected_bug" ]; then
+  echo "No unresolved bugs found"
+  exit 0
+fi
+```
+
+### 4. E2E Test Preference
+
+```bash
+# Check if bug has E2E test
+test_file=".maestro/flows/bugs/${selected_bug}-*.yaml"
+
+if ls $test_file 1> /dev/null 2>&1; then
+  echo "✓ Bug has E2E test: $test_file"
+  has_test=true
+else
+  echo "• Bug has no E2E test (will need manual verification)"
+  has_test=false
+fi
+```
+
+**Conservative behavior:**
+- Ask user if multiple P0 bugs (too critical to pick wrong one)
+- Default to first bug in priority order
+- Prefer bugs with E2E tests when multiple at same priority
+
 ## Process
 
 ### Phase 1: Load Bug Details
@@ -356,6 +474,185 @@ If bug.status !== 'fixed' when trying to archive:
 ❌ Cannot archive ${bug.id} - status is '${bug.status}'
 
 Bug must be fixed before archiving.
+```
+
+## Autonomous Mode - Post-Fix Updates
+
+After fix is complete and tests pass:
+
+### 1. Update bugs.yaml
+
+```bash
+# Update bug status to resolved
+update_item_status "$bug_id" "resolved"
+
+# Add resolved_at timestamp
+yq eval "(.bugs[] | select(.id == \"$bug_id\") | .resolved_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+
+# Keep sprint_id for historical reference (don't remove)
+```
+
+### 2. Run E2E Test (If Exists)
+
+```bash
+if [ -f ".maestro/flows/bugs/${bug_id}-*.yaml" ]; then
+  echo "Running E2E test for $bug_id..."
+
+  # Run Maestro test
+  maestro test ".maestro/flows/bugs/${bug_id}-*.yaml"
+
+  if [ $? -eq 0 ]; then
+    echo "✓ E2E test passed"
+    test_passed=true
+  else
+    echo "✗ E2E test failed - fix may be incomplete"
+    test_passed=false
+  fi
+fi
+```
+
+### 3. Update Index Files
+
+```bash
+# Sync bugs.yaml to docs/bugs/index.yaml
+cp bugs.yaml docs/bugs/index.yaml
+```
+
+### 4. Create Git Commit
+
+```bash
+git add bugs.yaml docs/bugs/index.yaml src/ tests/
+
+git commit -m "$(cat <<'EOF'
+fix: resolve $bug_id - $bug_title
+
+Bug: $bug_id
+Severity: $severity
+Sprint: $sprint_id
+
+Root Cause: [from systematic-debugging]
+Solution: [from implementation]
+
+Tests: All passing (XX/XX)
+E2E Test: $test_status
+
+Files Updated:
+- bugs.yaml ($bug_id: in-progress → resolved)
+- [source files modified]
+- [test files modified]
+
+🤖 Generated with Claude Code (autonomous mode)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Fix Complete
+
+Bug Selected: BUG-023 - Timeline crashes on scroll (P0)
+Reason: Highest priority unresolved bug in current sprint (SPRINT-007)
+
+Fix Applied:
+  Root Cause: Null pointer in ScrollView handler
+  Solution: Add null check before accessing timeline data
+  Files Modified:
+    - src/components/Timeline.tsx
+    - tests/Timeline.test.tsx
+
+Testing:
+  Unit Tests: All passing (47/47)
+  E2E Test: BUG-023 now passing ✓
+
+Files Updated:
+  - bugs.yaml (BUG-023: in-progress → resolved)
+  - src/components/Timeline.tsx (fix applied)
+  - tests/Timeline.test.tsx (test updated)
+
+Changes committed to git.
+
+Next: Continue with next highest priority bug (BUG-025: Data loss on save)
+```
+
+**Time Comparison:**
+- Interactive: 30-60 minutes (debugging and fixing)
+- Autonomous: 30-60 minutes (same time, just auto-selects bug)
+- **Difference:** Selection only, not debugging process
+
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Auto-select bug**
+
+```bash
+selected_bug=$(auto_select_highest_priority_bug)
+
+if [ -z "$selected_bug" ]; then
+  echo "No unresolved bugs found. All bugs are resolved!"
+  exit 0
+fi
+
+bug_title=$(get_item_title "$selected_bug")
+bug_severity=$(yq eval ".bugs[] | select(.id == \"$selected_bug\") | .severity" bugs.yaml)
+
+echo "Selected: $selected_bug - $bug_title ($bug_severity)"
+echo "Reason: Highest priority unresolved bug"
+```
+
+**Step 2: Update bug status to in-progress**
+
+```bash
+update_item_status "$selected_bug" "in-progress"
+```
+
+**Step 3: Follow systematic-debugging workflow**
+
+```bash
+# Use existing systematic-debugging skill
+# This is already autonomous:
+# - Phase 1: Root cause investigation
+# - Phase 2: Pattern analysis
+# - Phase 3: Hypothesis testing
+# - Phase 4: Implementation and verification
+
+# No changes needed to debugging process
+```
+
+**Step 4: After fix complete, update bug to resolved**
+
+```bash
+update_item_status "$selected_bug" "resolved"
+yq eval "(.bugs[] | select(.id == \"$selected_bug\") | .resolved_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+```
+
+**Step 5: Run E2E test if exists**
+
+```bash
+run_e2e_test_if_exists "$selected_bug"
+```
+
+**Step 6: Create git commit**
+
+```bash
+create_fix_commit "$selected_bug"
+```
+
+**Step 7: Display summary**
+
+Display output format from previous section.
+
+**Step 8: Suggest next bug (Optional)**
+
+```bash
+next_bug=$(auto_select_highest_priority_bug)
+
+if [ -n "$next_bug" ]; then
+  next_title=$(get_item_title "$next_bug")
+  echo ""
+  echo "Next: Continue with $next_bug - $next_title"
+fi
 ```
 
 ## Integration Points

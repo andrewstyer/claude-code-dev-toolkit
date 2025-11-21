@@ -2,11 +2,35 @@
 
 **Reusable session management and workflow system for Claude Code projects**
 
-**Current Version:** v2.1.3 (November 2025) - Complete sprint lifecycle with retrospectives!
+**Current Version:** v2.2.0 (November 2025) - Autonomous modes for all skills!
 
 ---
 
 ## ⚡ What's New
+
+### v2.2.0 (November 2025) - Autonomous Modes for All Skills
+
+**NEW: All 6 skills now support autonomous operation!**
+
+- **Autonomous modes** - Auto-detect and auto-execute with minimal prompting
+  - triaging-bugs: Auto-triage with severity detection (10-20x faster)
+  - triaging-features: Auto-approve/reject with scope detection (8-15x faster)
+  - scheduling-work-items: Auto-create sprints with velocity planning (2-5x faster)
+  - scheduling-features: Auto-create feature sprints with epic grouping
+  - scheduling-implementation-plan: Auto-schedule plans to sprints
+  - fixing-bugs: Auto-select highest priority bug to fix
+
+- **Shared utilities** - Reusable autonomous helper functions
+  - scripts/autonomous-helpers.sh with 6 shared functions
+  - Eliminates code duplication across skills
+  - Single source of truth for detection algorithms
+
+- **Aggressiveness levels** - Conservative, moderate, and aggressive
+  - Aggressive: Triage skills (easy to undo)
+  - Moderate: Scheduling skills (needs velocity data)
+  - Conservative: Polish skills (complex decisions)
+
+**[See CHANGELOG.md for full details →](CHANGELOG.md)**
 
 ### v2.1.3 (November 2025) - Sprint Completion
 

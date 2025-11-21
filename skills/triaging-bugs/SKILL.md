@@ -17,6 +17,27 @@ Review all reported bugs, prioritize by severity, select bugs in batch. Three op
 - During planning/sprint planning phase
 - When reviewing backlog before starting work
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "triage bugs"
+- Prompts for each decision with AskUserQuestion
+- Full human control over severity, status, and disposition
+- Estimated time: 1-2 minutes per bug
+
+**Autonomous Mode:**
+- User says "auto-triage bugs"
+- Auto-detects severity from bug title/description keywords
+- Auto-detects if bug already fixed from git commits
+- Applies aggressive auto-triage rules
+- Displays summary without confirmation prompts
+- Estimated time: 5-10 seconds per bug
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: Read and Summarize Bugs
@@ -396,6 +417,229 @@ Bugs are marked as triaged. You can:
 2. Manually create plan later
 3. Re-run triage to regenerate plan
 ```
+
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Severity Detection
+
+Uses shared function from `scripts/autonomous-helpers.sh`:
+
+```bash
+# Source shared helpers
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../../scripts/autonomous-helpers.sh"
+
+# Auto-detect severity
+severity=$(detect_bug_severity "$bug_title" "$bug_description")
+```
+
+**Detection rules:**
+
+**P0 (Critical):**
+- Keywords: crash, data loss, corruption, unusable, breaks app, critical, fatal
+- Action: Auto-triage immediately, status="triaged"
+- Note: "Auto-triaged as P0 (critical)"
+
+**P1 (High):**
+- Keywords: broken, fails, error, doesn't work, blocks, regression
+- Action: Auto-triage, status="triaged"
+- Note: "Auto-triaged as P1 (high priority)"
+
+**P2 (Low):**
+- Keywords: alignment, styling, minor, cosmetic, polish, typo, ui issue
+- Action: Auto-triage, status="triaged"
+- Note: "Auto-triaged as P2 (low priority)"
+
+**Fallback:** If no keywords match, default to P1 (moderate)
+
+### 2. Fix Detection
+
+Check git commits for fix patterns:
+
+```bash
+# Check if bug already fixed
+fix_commit=$(check_item_in_commits "$bug_id" "fix" "$bug_reported_date")
+
+if [ -n "$fix_commit" ]; then
+  # Bug appears to be fixed
+  status="resolved"
+  resolved_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  note="Auto-detected as fixed from git commit $fix_commit"
+fi
+```
+
+**Detection patterns:**
+- "fix BUG-XXX"
+- "BUG-XXX fix"
+- "resolve BUG-XXX"
+- "BUG-XXX resolved"
+
+**Conservative:** Only mark as resolved if clear fix commit found
+
+### 3. Duplicate Detection
+
+Compare bug title against existing bugs using fuzzy matching:
+
+```bash
+# Simple substring matching (production would use Levenshtein distance)
+existing_bugs=$(yq eval '.bugs[].title' bugs.yaml)
+
+for existing_title in $existing_bugs; do
+  # Calculate similarity (simplified)
+  # If >80% similar, flag as potential duplicate
+done
+```
+
+**Action:** Display warning but don't auto-reject (too risky)
+
+## Autonomous Mode - Auto-Decision Rules
+
+**For each bug with status="reported":**
+
+```
+IF fix detected in git commits:
+  → status="resolved"
+  → Add resolved_at timestamp
+  → Add note: "Auto-detected as fixed from git commits"
+
+ELSE IF severity=P0:
+  → status="triaged"
+  → Add note: "Auto-triaged as P0 (critical)"
+  → Optionally offer immediate fix (ask user)
+
+ELSE IF severity=P1:
+  → status="triaged"
+  → Add note: "Auto-triaged as P1 (high priority)"
+
+ELSE IF severity=P2:
+  → status="triaged"
+  → Add note: "Auto-triaged as P2 (low priority)"
+
+IF duplicate detected (>90% similarity):
+  → Display warning: "Possible duplicate of BUG-XXX"
+  → Keep as reported (don't auto-reject)
+  → Add duplicate_candidate field
+
+CONSERVATIVE FALLBACK:
+  When severity unclear → default to P1
+  When duplicate uncertain → keep bug, add warning
+  When fix detection unclear → leave as reported
+```
+
+**Aggressiveness Level:** Aggressive
+- Auto-triages all bugs with clear severity indicators
+- Marks bugs as resolved if fix commits found
+- Warns about duplicates but doesn't auto-reject
+
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Triage Complete
+
+Bugs Processed: 12
+
+Auto-Detected:
+  - 2 bugs resolved (found fix commits)
+  - 3 bugs triaged as P0 (critical keywords)
+  - 5 bugs triaged as P1 (error keywords)
+  - 2 bugs triaged as P2 (minor keywords)
+
+Warnings:
+  - BUG-025: Possible duplicate of BUG-018 (85% similar)
+
+Files Updated:
+  - bugs.yaml (12 bugs updated)
+  - docs/bugs/index.yaml
+
+Changes committed to git.
+
+Note: Run "triage bugs" (interactive) for manual review and overrides.
+```
+
+**Time Comparison:**
+- Interactive: ~1-2 minutes per bug (12 bugs = 12-24 minutes)
+- Autonomous: ~5-10 seconds per bug (12 bugs = 1-2 minutes)
+- **Speedup:** 10-20x faster
+
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Load bugs from bugs.yaml**
+
+```bash
+# Filter for reported bugs only
+reported_bugs=$(yq eval '.bugs[] | select(.status == "reported") | .id' bugs.yaml)
+bug_count=$(echo "$reported_bugs" | wc -l | tr -d ' ')
+
+echo "Found $bug_count reported bugs to triage"
+```
+
+**Step 2: Process each bug**
+
+```bash
+for bug_id in $reported_bugs; do
+  # Extract bug data
+  bug_title=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .title" bugs.yaml)
+  bug_description=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .description" bugs.yaml)
+  bug_reported_date=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .reported_date" bugs.yaml)
+
+  # Auto-detect severity
+  severity=$(detect_bug_severity "$bug_title" "$bug_description")
+
+  # Check for fix commits
+  fix_commit=$(check_item_in_commits "$bug_id" "fix" "$bug_reported_date")
+
+  # Apply decision rules
+  if [ -n "$fix_commit" ]; then
+    # Bug already fixed
+    update_item_status "$bug_id" "resolved"
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .resolved_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .notes) = \"Auto-detected as fixed from commit $fix_commit\"" -i bugs.yaml
+    echo "  ✓ $bug_id: resolved (fix found)"
+  else
+    # Auto-triage based on severity
+    update_item_status "$bug_id" "triaged"
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .severity) = \"$severity\"" -i bugs.yaml
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .notes) = \"Auto-triaged as $severity\"" -i bugs.yaml
+    echo "  ✓ $bug_id: triaged as $severity"
+  fi
+done
+```
+
+**Step 3: Update index file**
+
+```bash
+# Sync bugs.yaml changes to docs/bugs/index.yaml
+cp bugs.yaml docs/bugs/index.yaml
+```
+
+**Step 4: Create git commit**
+
+```bash
+git add bugs.yaml docs/bugs/index.yaml
+
+git commit -m "$(cat <<'EOF'
+feat: auto-triage $bug_count bugs
+
+Auto-Detection Results:
+- $resolved_count bugs resolved (fix commits found)
+- $p0_count bugs triaged as P0
+- $p1_count bugs triaged as P1
+- $p2_count bugs triaged as P2
+
+Files updated:
+- bugs.yaml ($bug_count bugs updated)
+- docs/bugs/index.yaml
+
+🤖 Generated with Claude Code (autonomous mode)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Step 5: Display summary**
+
+Display output format from previous section.
 
 ## Integration Points
 

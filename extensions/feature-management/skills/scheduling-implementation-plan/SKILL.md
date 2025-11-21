@@ -19,6 +19,27 @@ Takes an existing implementation plan (created by superpowers:writing-plans, man
 - When you need to update ROADMAP.md with tasks from an existing plan
 - To bridge standalone implementation plans into the feature-management system
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "schedule plan" or provides plan filename
+- Prompts for plan selection, sprint breakdown, feature linking
+- Full human control over sprint boundaries
+- Estimated time: 2-7 minutes per plan
+
+**Autonomous Mode:**
+- User says "auto-schedule plan [filename]" or "auto-schedule plan"
+- Auto-discovers unscheduled plans if no filename provided
+- Auto-counts tasks and determines sprint breakdown
+- Auto-splits at natural boundaries (phases, sections)
+- Creates sprints without prompting for confirmation
+- Estimated time: 1-2 minutes per plan
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: Select Implementation Plan
@@ -627,6 +648,274 @@ Description: Build medication model with validation
 8. Handle plan with complexity estimates
 9. Verify ROADMAP.md updates correctly
 10. Verify sprint documents link to plan
+
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Plan Discovery
+
+If no filename provided, find recent unscheduled plans:
+
+```bash
+# Find all implementation plan files
+plans=$(find docs/plans/ -name "*-plan.md" -o -name "*-implementation-plan.md" | head -10)
+
+# Check which plans are already scheduled
+for plan_file in $plans; do
+  # Extract plan name/ID
+  plan_name=$(basename "$plan_file" | sed 's/-plan.md$//' | sed 's/-implementation-plan.md$//')
+
+  # Check if plan already mentioned in ROADMAP.md or sprint documents
+  if grep -q "$plan_name" ROADMAP.md 2>/dev/null; then
+    echo "  ⊗ $plan_file (already scheduled)"
+  else
+    echo "  ○ $plan_file (unscheduled)"
+    unscheduled_plans+=("$plan_file")
+  fi
+done
+
+# Select most recent unscheduled plan
+if [ ${#unscheduled_plans[@]} -eq 0 ]; then
+  echo "No unscheduled plans found"
+  exit 0
+fi
+
+# Use most recent by file modification time
+selected_plan=$(ls -t "${unscheduled_plans[@]}" | head -1)
+echo "Selected plan: $selected_plan"
+```
+
+### 2. Task Counting
+
+Count tasks in plan:
+
+```bash
+# Count task markers:
+# - "## Task" or "### Task" headings
+# - "- [ ]" checkboxes
+
+task_count=$(grep -c "^## Task\|^### Task\|- \[ \]" "$plan_file")
+
+echo "Found $task_count tasks in plan"
+```
+
+### 3. Sprint Sizing Heuristics
+
+Determine number of sprints based on task count:
+
+```
+≤8 tasks   → 1 sprint (1-2 weeks)
+9-16 tasks → 2 sprints (2-4 weeks)
+17-24 tasks → 3 sprints (3-6 weeks)
+>24 tasks  → 4+ sprints (4-8 weeks)
+```
+
+```bash
+if [ $task_count -le 8 ]; then
+  sprint_count=1
+elif [ $task_count -le 16 ]; then
+  sprint_count=2
+elif [ $task_count -le 24 ]; then
+  sprint_count=3
+else
+  sprint_count=4
+fi
+
+echo "Recommended: $sprint_count sprint(s)"
+```
+
+### 4. Natural Boundary Detection
+
+Look for natural split points in plan:
+
+```bash
+# Look for section headings that indicate phases or waves
+boundaries=$(grep -n "^## \(Phase\|Wave\|Part\|Section\)" "$plan_file" | cut -d: -f1)
+
+if [ -n "$boundaries" ]; then
+  echo "Found natural boundaries at lines: $boundaries"
+  use_natural_boundaries=true
+else
+  echo "No natural boundaries, will split evenly by task count"
+  use_natural_boundaries=false
+fi
+```
+
+**Splitting strategies:**
+
+**Strategy 1: Natural boundaries exist**
+
+```
+IF plan has "## Phase 1", "## Phase 2", etc:
+  → Split at each phase
+  → Create SPRINT-XXX per phase
+  → Sprint name: "Sprint XX: [Plan Name] - Phase 1"
+
+EXAMPLE:
+  Plan with "## Phase 1" (5 tasks), "## Phase 2" (7 tasks)
+  → SPRINT-001: Feature ABC - Phase 1 (5 tasks)
+  → SPRINT-002: Feature ABC - Phase 2 (7 tasks)
+```
+
+**Strategy 2: No natural boundaries**
+
+```
+IF plan has no clear phases:
+  → Split evenly by task count
+  → Tasks 1-8 → Sprint 1
+  → Tasks 9-16 → Sprint 2
+  → etc.
+```
+
+**Strategy 3: Single sprint**
+
+```
+IF task_count ≤ 8:
+  → Create single sprint with all tasks
+  → Sprint name: "Sprint XX: [Plan Name]"
+```
+
+**Conservative fallback:** When boundaries unclear, default to single sprint
+
+### 5. Feature Linking
+
+If FEAT-XXX in plan filename, link to feature:
+
+```bash
+# Extract FEAT-XXX from filename
+feature_id=$(basename "$plan_file" | grep -oE 'FEAT-[0-9]{3}')
+
+if [ -n "$feature_id" ]; then
+  echo "Detected feature: $feature_id"
+
+  # Update features.yaml with sprint_id(s)
+  for sprint_id in $created_sprint_ids; do
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .sprint_id) = \"$sprint_id\"" -i features.yaml
+  done
+
+  # Add implementation_plan field if not exists
+  yq eval "(.features[] | select(.id == \"$feature_id\") | .implementation_plan) = \"$plan_file\"" -i features.yaml
+
+  # Update status to scheduled
+  update_item_status "$feature_id" "scheduled"
+fi
+```
+
+**Linking rules:**
+- Single sprint: feature.sprint_id = SPRINT-XXX
+- Multiple sprints: feature.sprint_id = first sprint, add sprints field with array
+
+## Autonomous Mode - Output Format
+
+**Single Sprint:**
+
+```
+✅ Auto-Schedule Complete
+
+Plan: docs/plans/features/FEAT-042-medication-tracking-plan.md
+Tasks: 7
+
+Sprint Created: SPRINT-008 - Medication Tracking
+Duration: 1-2 weeks
+Tasks: 7
+
+Files Updated:
+  - docs/plans/sprints/SPRINT-008-medication-tracking.md
+  - features.yaml (FEAT-042: sprint_id = SPRINT-008)
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Use executing-plans to implement SPRINT-008 tasks
+```
+
+**Multiple Sprints:**
+
+```
+✅ Auto-Schedule Complete
+
+Plan: docs/plans/features/FEAT-050-analytics-dashboard-plan.md
+Tasks: 18
+
+Sprints Created: 2 (split at natural boundaries)
+
+SPRINT-009: Analytics Dashboard - Phase 1
+  - Duration: 2 weeks
+  - Tasks: 8 (tasks 1-8)
+
+SPRINT-010: Analytics Dashboard - Phase 2
+  - Duration: 2 weeks
+  - Tasks: 10 (tasks 9-18)
+
+Files Updated:
+  - docs/plans/sprints/SPRINT-009-analytics-dashboard-phase-1.md
+  - docs/plans/sprints/SPRINT-010-analytics-dashboard-phase-2.md
+  - features.yaml (FEAT-050: sprint_id = SPRINT-009, sprints = [009, 010])
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Start with SPRINT-009, then proceed to SPRINT-010
+```
+
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Discover or load plan**
+
+```bash
+if [ -z "$plan_file" ]; then
+  # Auto-discover
+  plan_file=$(find_most_recent_unscheduled_plan)
+else
+  # Use provided filename
+  if [ ! -f "$plan_file" ]; then
+    echo "Error: Plan file not found: $plan_file"
+    exit 1
+  fi
+fi
+```
+
+**Step 2: Count tasks and determine sprint breakdown**
+
+```bash
+task_count=$(grep -c "^## Task\|^### Task\|- \[ \]" "$plan_file")
+sprint_count=$(calculate_sprint_count $task_count)
+
+echo "Plan: $plan_file"
+echo "Tasks: $task_count"
+echo "Sprints: $sprint_count"
+```
+
+**Step 3: Split plan and create sprints**
+
+```bash
+if [ $sprint_count -eq 1 ]; then
+  create_single_sprint "$plan_file" "$task_count"
+else
+  create_multiple_sprints "$plan_file" "$task_count" "$sprint_count"
+fi
+```
+
+**Step 4: Link to feature if applicable**
+
+```bash
+feature_id=$(extract_feature_id "$plan_file")
+if [ -n "$feature_id" ]; then
+  link_feature_to_sprints "$feature_id" "${created_sprint_ids[@]}"
+fi
+```
+
+**Step 5: Update ROADMAP and commit**
+
+```bash
+update_roadmap_with_sprints "${created_sprint_ids[@]}"
+
+git add docs/plans/sprints/ features.yaml ROADMAP.md
+git commit -m "feat: auto-schedule plan $plan_file across $sprint_count sprint(s)"
+```
+
+**Step 6: Display summary**
+
+Display appropriate output format from previous section.
 
 ## Notes
 

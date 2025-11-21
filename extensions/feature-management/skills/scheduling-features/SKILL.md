@@ -609,6 +609,289 @@ See Phase 6 Step 4 for complete format.
 - Features can be rescheduled if priorities change
 - Multiple sprints can be active simultaneously
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "schedule features"
+- Prompts for sprint details, feature selection, epic grouping
+- Full human control over sprint composition
+- Estimated time: 5-10 minutes per sprint
+
+**Autonomous Mode:**
+- User says "auto-schedule features"
+- Auto-calculates feature-only velocity from completed sprints
+- Auto-groups features by epic (if assigned)
+- Auto-selects features by priority (Must-Have → Nice-to-Have)
+- Creates feature-only sprint without prompting
+- Estimated time: 2-3 minutes per sprint
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Feature-Only Velocity Calculation
+
+Calculate velocity from feature-only completed sprints:
+
+```bash
+# Modified velocity calculation that excludes bugs
+calculate_feature_velocity() {
+  local roadmap_file="${1:-ROADMAP.md}"
+
+  if [ ! -f "$roadmap_file" ]; then
+    echo "0"
+    return 1
+  fi
+
+  local total_features=0
+  local completed_features=0
+  local feature_sprint_count=0
+
+  # Find feature-only sprints (0 bugs)
+  while IFS= read -r sprint_line; do
+    if echo "$sprint_line" | grep -q "completed -"; then
+      # Check if sprint has features and 0 bugs
+      bug_count=$(echo "$sprint_line" | grep -oE '[0-9]+ bugs' | cut -d' ' -f1)
+      feature_count=$(echo "$sprint_line" | grep -oE '[0-9]+ features' | cut -d' ' -f1)
+
+      if [ "$bug_count" = "0" ] && [ -n "$feature_count" ]; then
+        ((feature_sprint_count++))
+        completed_features=$((completed_features + feature_count))
+      fi
+    fi
+  done < "$roadmap_file"
+
+  if [ $feature_sprint_count -eq 0 ]; then
+    # Fall back to general velocity
+    echo $(calculate_sprint_velocity)
+  else
+    local avg_velocity=$((completed_features / feature_sprint_count))
+    echo "$avg_velocity"
+  fi
+}
+
+velocity=$(calculate_feature_velocity)
+```
+
+**Fallback hierarchy:**
+1. Feature-only velocity (if feature sprints exist)
+2. General sprint velocity (if any sprints exist)
+3. Default to 5 features per sprint
+
+**Cap:** Maximum 8 features per sprint (features take longer than bugs)
+
+### 2. Epic Grouping Detection
+
+Check if features have epic assignments:
+
+```bash
+# Check for epic field in approved features
+features_with_epics=$(yq eval '.features[] | select(.status == "approved" and .epic != null) | .id' features.yaml)
+epic_count=$(echo "$features_with_epics" | wc -l | tr -d ' ')
+
+if [ $epic_count -gt 0 ]; then
+  echo "Found $epic_count features with epic assignments"
+  use_epic_grouping=true
+else
+  echo "No epic assignments, creating single sprint"
+  use_epic_grouping=false
+fi
+```
+
+**Epic grouping strategy:**
+
+```
+IF features have epic assignments:
+  → Group features by epic
+  → Create separate sprint per epic
+  → Sprint name: "Sprint XX: [Epic Name]"
+
+ELSE:
+  → Create single sprint with highest priority features
+  → Sprint name: "Sprint XX: [Theme from titles]"
+```
+
+**Example epic grouping:**
+
+```
+Approved features:
+- FEAT-001: Add login (epic: authentication)
+- FEAT-002: Add logout (epic: authentication)
+- FEAT-005: Add dashboard (epic: core-ui)
+- FEAT-006: Add sidebar (epic: core-ui)
+
+Result:
+- SPRINT-001: Authentication (FEAT-001, FEAT-002)
+- SPRINT-002: Core UI (FEAT-005, FEAT-006)
+```
+
+### 3. Feature Selection (No Epic Grouping)
+
+Priority order:
+
+```
+1. Must-Have features (by order in yaml)
+2. Nice-to-Have features (if space remains)
+3. Future features (if space remains)
+
+Stop when: capacity reached OR no more features
+```
+
+## Autonomous Mode - Sprint Creation
+
+**Single Sprint (No Epics):**
+
+```bash
+# Similar to scheduling-work-items but features-only
+next_id=$(yq eval '.nextId' ROADMAP.md)
+sprint_id=$(printf "SPRINT-%03d" $next_id)
+
+theme=$(extract_sprint_themes $selected_feature_ids)
+sprint_name="Sprint $next_id: $theme"
+
+sprint_goal="Implement $must_have_count must-have features"
+```
+
+**Multiple Sprints (Epic Grouping):**
+
+```bash
+# Group features by epic
+declare -A epic_features
+for feature_id in $approved_features; do
+  epic=$(yq eval ".features[] | select(.id == \"$feature_id\") | .epic" features.yaml)
+  if [ -n "$epic" ] && [ "$epic" != "null" ]; then
+    epic_features[$epic]="${epic_features[$epic]} $feature_id"
+  fi
+done
+
+# Create sprint per epic
+for epic in "${!epic_features[@]}"; do
+  sprint_id=$(printf "SPRINT-%03d" $next_id)
+  sprint_name="Sprint $next_id: $epic"
+
+  # Create sprint document
+  # Add features from epic_features[$epic]
+
+  ((next_id++))
+done
+```
+
+**Conservative decisions:**
+- Don't create implementation plans (user can do that)
+- Don't execute features (too presumptuous)
+- Maximum 8 features per sprint
+
+## Autonomous Mode - Output Format
+
+**Single Sprint:**
+
+```
+✅ Auto-Schedule Complete
+
+Sprint Created: SPRINT-005 - Core Features
+Capacity: 6 features (based on velocity: 6.1 features/sprint)
+Duration: 2 weeks
+Start: 2025-11-21
+End: 2025-12-05
+
+Features Scheduled:
+  Must-Have (4):
+    • FEAT-042: Medication tracking
+    • FEAT-043: Export PDF
+    • FEAT-044: Document upload
+    • FEAT-045: Timeline view
+
+  Nice-to-Have (2):
+    • FEAT-046: Dark mode
+    • FEAT-047: Offline sync
+
+Files Updated:
+  - features.yaml (6 features: approved → scheduled)
+  - docs/plans/sprints/SPRINT-005-core-features.md
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Use executing-plans or superpowers:writing-plans for features
+```
+
+**Multiple Sprints (Epic Grouping):**
+
+```
+✅ Auto-Schedule Complete
+
+Sprints Created: 2 (grouped by epic)
+
+SPRINT-005: Authentication
+  - Duration: 2 weeks
+  - Features: 2 (FEAT-001, FEAT-002)
+
+SPRINT-006: Core UI
+  - Duration: 2 weeks
+  - Features: 2 (FEAT-005, FEAT-006)
+
+Files Updated:
+  - features.yaml (4 features: approved → scheduled)
+  - docs/plans/sprints/SPRINT-005-authentication.md
+  - docs/plans/sprints/SPRINT-006-core-ui.md
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Work on SPRINT-005 first, then SPRINT-006
+```
+
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Calculate feature velocity**
+
+```bash
+velocity=$(calculate_feature_velocity)
+echo "Feature velocity: $velocity features per sprint"
+```
+
+**Step 2: Check for epic grouping**
+
+```bash
+features_with_epics=$(yq eval '.features[] | select(.status == "approved" and .epic != null) | .id' features.yaml)
+
+if [ -n "$features_with_epics" ]; then
+  use_epic_grouping=true
+else
+  use_epic_grouping=false
+fi
+```
+
+**Step 3: Create sprint(s)**
+
+```bash
+if [ "$use_epic_grouping" = true ]; then
+  # Group by epic and create multiple sprints
+  create_epic_sprints
+else
+  # Create single sprint with priority-based selection
+  create_single_feature_sprint
+fi
+```
+
+**Step 4: Update files and commit**
+
+```bash
+# Update features.yaml with sprint_id
+# Create sprint documents
+# Update ROADMAP.md
+
+git add features.yaml docs/plans/sprints/ ROADMAP.md
+git commit -m "feat: auto-schedule $feature_count features across $sprint_count sprint(s)"
+```
+
+**Step 5: Display summary**
+
+Display appropriate output format from previous section.
+
 ---
 
 **Version:** 1.0

@@ -483,7 +483,7 @@ Extensions work well together:
 
 **Location:** `extensions/feature-management/`
 
-**Purpose:** Complete feature request workflow from idea to implementation with sprint planning
+**Purpose:** Complete feature and bug lifecycle management with autonomous operation modes
 
 ### When to Use
 
@@ -500,57 +500,23 @@ Extensions work well together:
 
 ### What It Provides
 
-**Six-skill workflow: capture → triage → schedule → implement → complete**
+**Skills (7):**
+- **skills/reporting-bugs/** - Capture bugs during testing
+- **skills/triaging-bugs/** - Triage reported bugs (interactive + autonomous)
+- **skills/reporting-features/** - Capture feature requests
+- **skills/triaging-features/** - Triage proposed features (interactive + autonomous)
+- **skills/scheduling-work-items/** - Schedule bugs + features into sprints (interactive + autonomous)
+- **skills/scheduling-features/** - Schedule features-only sprints (interactive + autonomous)
+- **skills/scheduling-implementation-plan/** - Schedule implementation plans (interactive + autonomous)
+- **skills/completing-sprints/** - Complete sprints systematically (interactive + autonomous)
 
-**Skill 1: reporting-features (~2 min per feature)**
-- Interactive feature request capture
-- Auto-incrementing IDs (FEAT-001, FEAT-002, etc.)
-- Duplicate detection with fuzzy matching
-- Stores in features.yaml with status="proposed"
-- Updates docs/features/index.yaml for fast querying
+**Supporting Scripts:**
+- **scripts/autonomous-helpers.sh** - Shared autonomous detection and decision functions
+- **scripts/validate-sprint-data.sh** - Sprint data consistency validation
 
-**Skill 2: triaging-features (~1-2 min per feature)**
-- Batch review of proposed features
-- Smart filtering (by category, priority, date)
-- Actions: approve, reject, reprioritize, assign to epic
-- Updates status to "approved" or "rejected"
-- Git commit with detailed changelog
-
-**Skill 3: scheduling-features (~5-10 min per sprint)**
-- Schedule approved features into sprints
-- Create sprint documents in docs/plans/sprints/
-- Optional: Create implementation plans (superpowers integration)
-- Optional: Execute features immediately
-- Auto-generates ROADMAP.md
-- Updates status to "scheduled" or "in-progress"
-
-**Skill 4: scheduling-implementation-plan (~2-7 min per plan)**
-- Convert existing implementation plans into sprint tasks
-- Parses tasks, dependencies, and estimates from any plan
-- Single sprint or multi-sprint breakdown
-- Updates ROADMAP.md with task-level detail
-- Links implementation plan to sprints
-- Bridges standalone plans (created outside feature workflow) into sprint system
-
-**Skill 5: scheduling-work-items (~3-5 min per sprint)**
-- Unified sprint planning with bugs AND features together
-- Prioritize across bugs vs features (P0 vs Must-Have)
-- Capacity planning showing total items before committing
-- Creates sprints with mixed bugs and features sections
-- Updates both bugs.yaml and features.yaml with sprint_id
-- Generates ROADMAP.md with unified bugs + features view
-
-**Skill 6: completing-sprints (~5-10 min interactive, ~2-3 min autonomous) - NEW**
-- Systematic sprint completion with retrospectives
-- Interactive mode: Human-led review with AskUserQuestion prompts
-- Autonomous mode: Auto-detect completion from project state
-- Marks bugs as resolved/unresolved, features as completed/partial/incomplete
-- Handles incomplete items (return to backlog, move to next sprint, or keep)
-- Sets completion type (successful/partial/pivoted)
-- Optional retrospective generation with stats and manual notes
-- Updates all files (bugs.yaml, features.yaml, sprint docs, ROADMAP.md)
-- Runs validation script to ensure data consistency
-- Git commit with detailed statistics and changelog
+**All skills support dual-mode operation:**
+- Interactive mode: Full human control (default)
+- Autonomous mode: Auto-detection with conservative fallbacks (opt-in)
 
 **Integration with Superpowers:**
 - superpowers:brainstorming → Refine feature requirements

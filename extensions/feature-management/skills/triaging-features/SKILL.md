@@ -19,6 +19,27 @@ Review and prioritize proposed feature requests in batches. Approve features for
 - Weekly/biweekly triage sessions
 - When backlog needs cleanup
 
+## Dual-Mode Operation
+
+**Interactive Mode (Default):**
+- User says "triage features"
+- Prompts for each decision with AskUserQuestion
+- Full human control over approval/rejection
+- Estimated time: 1-2 minutes per feature
+
+**Autonomous Mode:**
+- User says "auto-triage features"
+- Auto-detects in-scope vs out-of-scope from existing features
+- Auto-approves clear must-have features in existing categories
+- Auto-rejects clear duplicates (>90% similarity)
+- Keeps proposed status for uncertain cases
+- Estimated time: 5-10 seconds per feature
+
+**Mode Selection:**
+Mode is determined by invocation phrase:
+- Contains "auto-": Use autonomous mode
+- Otherwise: Use interactive mode
+
 ## Process
 
 ### Phase 1: List Proposed Features
@@ -318,6 +339,246 @@ Changes committed to git.
 - Must-Have: Next 1-2 sprints
 - Nice-to-Have: Next 3-6 months
 - Future: Parking lot for good ideas
+
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Scope Detection
+
+Check if feature category aligns with existing approved features:
+
+```bash
+# Extract categories from approved features
+existing_categories=$(yq eval '.features[] | select(.status == "approved") | .category' features.yaml | sort -u)
+
+# Check if feature category exists
+feature_category=$(yq eval ".features[] | select(.id == \"$feature_id\") | .category" features.yaml)
+
+in_scope=false
+for cat in $existing_categories; do
+  if [ "$feature_category" = "$cat" ]; then
+    in_scope=true
+    break
+  fi
+done
+```
+
+**Detection rules:**
+- Category in existing approved features → In scope
+- Category never used before → Potentially out of scope (needs review)
+- Priority + category combination common → Likely valid
+
+### 2. Priority Validation
+
+Check if priority aligns with category patterns:
+
+```bash
+# Common valid patterns:
+# - new-functionality + must-have → Common, likely valid
+# - performance + future → Unusual, might need review
+# - ux-improvement + nice-to-have → Common pattern
+# - bug-fix + must-have → Should be a bug, not feature
+
+# Count existing features with same category+priority combination
+pattern_count=$(yq eval ".features[] | select(.category == \"$category\" and .priority == \"$priority\")" features.yaml | wc -l)
+
+if [ $pattern_count -gt 0 ]; then
+  pattern_valid=true
+else
+  pattern_valid=false
+fi
+```
+
+### 3. Enhanced Duplicate Detection
+
+Uses enhanced fuzzy matching from reporting-features:
+
+```bash
+# Compare title and description
+# Threshold: 85% similarity for warning, 90% for auto-reject
+
+feature_title=$(yq eval ".features[] | select(.id == \"$feature_id\") | .title" features.yaml)
+feature_desc=$(yq eval ".features[] | select(.id == \"$feature_id\") | .description" features.yaml)
+
+# Check against existing features (simplified implementation)
+existing_features=$(yq eval '.features[] | select(.id != "'$feature_id'") | .title' features.yaml)
+
+for existing_title in $existing_features; do
+  # Calculate similarity (simplified - production would use Levenshtein)
+  # If >90% similar, mark as duplicate
+done
+```
+
+## Autonomous Mode - Auto-Decision Rules
+
+**For each feature with status="proposed":**
+
+```
+IF clear duplicate (>90% similarity):
+  → status="rejected"
+  → rejection_reason="Duplicate of FEAT-XXX"
+  → Add duplicate_of field
+  → Add note: "Auto-rejected (duplicate)"
+
+ELSE IF priority=must-have AND category in existing approved:
+  → status="approved"
+  → Add note: "Auto-approved (must-have, in-scope)"
+
+ELSE IF priority=nice-to-have AND category in existing approved:
+  → status="approved"
+  → Add note: "Auto-approved (nice-to-have, in-scope)"
+
+ELSE IF priority=future:
+  → Keep status="proposed"
+  → Add note: "Kept as proposed (future priority, defer decision)"
+
+ELSE IF category NOT in existing approved:
+  → Keep status="proposed"
+  → Add note: "Kept as proposed (new category, needs review)"
+
+ELSE:
+  → Keep status="proposed"
+  → Add note: "Kept as proposed (uncertain, needs review)"
+
+CONSERVATIVE FALLBACK:
+  When unsure → Keep as proposed (don't approve or reject)
+  Only auto-reject clear duplicates (>90%)
+  Only auto-approve when priority+category clearly valid
+```
+
+**Aggressiveness Level:** Aggressive
+- Auto-approves must-have and nice-to-have features in existing categories
+- Auto-rejects clear duplicates (>90% similarity)
+- Keeps uncertain cases as proposed for human review
+
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Triage Complete
+
+Features Processed: 8
+
+Auto-Detected:
+  - 4 features approved (must-have, in-scope)
+  - 2 features approved (nice-to-have, in-scope)
+  - 1 feature kept as proposed (future priority)
+  - 1 feature rejected (duplicate of FEAT-015)
+
+Warnings:
+  - FEAT-042: New category "analytics" - kept as proposed for review
+
+Files Updated:
+  - features.yaml (8 features updated)
+  - docs/features/index.yaml
+
+Changes committed to git.
+
+Note: Run "triage features" (interactive) for manual review.
+```
+
+**Time Comparison:**
+- Interactive: ~1-2 minutes per feature (8 features = 8-16 minutes)
+- Autonomous: ~5-10 seconds per feature (8 features = 1-2 minutes)
+- **Speedup:** 8-15x faster
+
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Load features from features.yaml**
+
+```bash
+# Filter for proposed features only
+proposed_features=$(yq eval '.features[] | select(.status == "proposed") | .id' features.yaml)
+feature_count=$(echo "$proposed_features" | wc -l | tr -d ' ')
+
+echo "Found $feature_count proposed features to triage"
+```
+
+**Step 2: Extract existing categories**
+
+```bash
+# Get categories from approved features
+existing_categories=$(yq eval '.features[] | select(.status == "approved") | .category' features.yaml | sort -u)
+```
+
+**Step 3: Process each feature**
+
+```bash
+approved_count=0
+rejected_count=0
+kept_count=0
+
+for feature_id in $proposed_features; do
+  # Extract feature data
+  title=$(yq eval ".features[] | select(.id == \"$feature_id\") | .title" features.yaml)
+  category=$(yq eval ".features[] | select(.id == \"$feature_id\") | .category" features.yaml)
+  priority=$(yq eval ".features[] | select(.id == \"$feature_id\") | .priority" features.yaml)
+
+  # Check for duplicates (>90% similarity)
+  duplicate=$(check_for_duplicate "$feature_id")
+
+  if [ -n "$duplicate" ]; then
+    # Auto-reject duplicate
+    update_item_status "$feature_id" "rejected"
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .rejection_reason) = \"Duplicate of $duplicate\"" -i features.yaml
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .duplicate_of) = \"$duplicate\"" -i features.yaml
+    echo "  ✗ $feature_id: rejected (duplicate of $duplicate)"
+    ((rejected_count++))
+    continue
+  fi
+
+  # Check if category in scope
+  in_scope=false
+  for cat in $existing_categories; do
+    if [ "$category" = "$cat" ]; then
+      in_scope=true
+      break
+    fi
+  done
+
+  # Apply decision rules
+  if [ "$in_scope" = true ] && ([ "$priority" = "must-have" ] || [ "$priority" = "nice-to-have" ]); then
+    # Auto-approve
+    update_item_status "$feature_id" "approved"
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .notes) = \"Auto-approved ($priority, in-scope)\"" -i features.yaml
+    echo "  ✓ $feature_id: approved ($priority, $category)"
+    ((approved_count++))
+  else
+    # Keep as proposed
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .notes) = \"Kept as proposed (needs review)\"" -i features.yaml
+    echo "  • $feature_id: kept as proposed (needs review)"
+    ((kept_count++))
+  fi
+done
+```
+
+**Step 4: Update index and commit**
+
+```bash
+cp features.yaml docs/features/index.yaml
+
+git add features.yaml docs/features/index.yaml
+
+git commit -m "$(cat <<'EOF'
+feat: auto-triage $feature_count features
+
+Auto-Detection Results:
+- $approved_count features approved
+- $rejected_count features rejected (duplicates)
+- $kept_count features kept as proposed
+
+Files updated:
+- features.yaml ($feature_count features processed)
+- docs/features/index.yaml
+
+🤖 Generated with Claude Code (autonomous mode)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Step 5: Display summary**
+
+Display output format from previous section.
 
 ## Success Criteria
 
