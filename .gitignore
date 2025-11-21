@@ -25,6 +25,9 @@ Thumbs.db
 *.backup
 ~*
 
+# Git worktrees
+.worktrees/
+
 # Don't ignore the git-hooks directory (we want to track it)
 !git-hooks/
 
