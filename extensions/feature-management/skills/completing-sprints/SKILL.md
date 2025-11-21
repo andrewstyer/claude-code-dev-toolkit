@@ -263,3 +263,129 @@ For each feature in sprint:
 **Display Auto-Detected Summary:**
 
 Show same format as interactive mode summary, then proceed automatically without confirmation.
+
+### Phase 2: Handle Incomplete Items
+
+**Step 1: Identify Incomplete Items**
+
+From Phase 1 completion data:
+
+- Bugs: Any bug NOT marked as "resolved"
+- Features: Any feature NOT marked as "completed" (includes partial 50%/75% and not-started)
+
+Display list:
+
+```
+Incomplete Items (4):
+
+Features (3):
+  • FEAT-001: Add medication tracking (75% complete)
+  • FEAT-005: Export health summary (not started)
+  • FEAT-008: Improve navigation (not started)
+
+Bugs (1):
+  • BUG-003: Document upload fails (in-progress)
+```
+
+**Step 2: Set Default Action (Interactive Mode)**
+
+Use AskUserQuestion:
+
+```
+Question: "How should incomplete items be handled by default?"
+Header: "Incomplete Items"
+multiSelect: false
+Options:
+  - Label: "Return to backlog"
+    Description: "Remove sprint_id, reset to triaged (bugs) or approved (features)"
+  - Label: "Move to next sprint"
+    Description: "Update sprint_id to SPRINT-002 (if exists)"
+  - Label: "Keep in current sprint"
+    Description: "Leave sprint_id for historical reference"
+  - Label: "Review each individually"
+    Description: "Prompt for each item separately"
+```
+
+**Step 3: Apply Default or Review Individually**
+
+If "Review each individually" selected:
+
+For each incomplete item, use AskUserQuestion:
+
+```
+Question: "What should we do with FEAT-001: Add medication tracking (75% complete)?"
+Header: "Item Action"
+multiSelect: false
+Options:
+  - Label: "Return to backlog"
+  - Label: "Move to next sprint"
+  - Label: "Keep in current sprint"
+```
+
+If default action selected:
+- Apply to all incomplete items
+- Display summary: "4 items will be [action]"
+
+**Step 4: Handle "Move to Next Sprint" Logic**
+
+Check if next sprint exists:
+
+```bash
+# Current sprint: SPRINT-001
+# Next sprint: SPRINT-002
+next_sprint_id="SPRINT-002"
+
+# Check if next sprint document exists
+if [ -f docs/plans/sprints/SPRINT-002-*.md ]; then
+  # Next sprint exists
+  echo "Moving items to SPRINT-002"
+else
+  # Next sprint doesn't exist
+  echo "SPRINT-002 not found"
+fi
+```
+
+**If next sprint doesn't exist (Interactive):**
+
+Use AskUserQuestion:
+
+```
+Question: "Next sprint (SPRINT-002) doesn't exist. What should we do?"
+Header: "Next Sprint"
+multiSelect: false
+Options:
+  - Label: "Create SPRINT-002 now"
+    Description: "Invoke scheduling-work-items to create next sprint"
+  - Label: "Return to backlog instead"
+    Description: "Change action for these items"
+  - Label: "Keep in current sprint"
+    Description: "Leave for reference"
+```
+
+**If next sprint doesn't exist (Autonomous):**
+- Default: Return all items to backlog (conservative)
+- Don't auto-create sprints
+
+**Step 5: Autonomous Mode Default Behavior**
+
+Default action: Return to backlog (conservative)
+
+Exception - Auto-move high-priority items to next sprint if it exists:
+- P0/P1 bugs → Move to next sprint
+- Must-Have features → Move to next sprint
+- P2 bugs, Nice-to-Have/Future features → Return to backlog
+
+**Step 6: Track Disposition**
+
+For each incomplete item, store disposition:
+
+```
+incomplete_items = {
+  "FEAT-001": {action: "move_to_next_sprint", next_sprint: "SPRINT-002"},
+  "FEAT-005": {action: "return_to_backlog"},
+  "FEAT-008": {action: "return_to_backlog"},
+  "BUG-003": {action: "move_to_next_sprint", next_sprint: "SPRINT-002"}
+}
+```
+
+This data will be used in Phase 4 to update files.
