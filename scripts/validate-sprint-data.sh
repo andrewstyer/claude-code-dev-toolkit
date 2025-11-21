@@ -193,3 +193,67 @@ check_roadmap_consistency() {
 
   echo ""
 }
+
+# Check 3: Status Lifecycle Validation
+check_status_lifecycle() {
+  echo "Checking Status Lifecycle..."
+
+  local check_errors=0
+
+  # Valid bug status transitions
+  # reported → triaged → scheduled → in-progress → resolved
+
+  # Valid feature status transitions
+  # proposed → approved → scheduled → in-progress → completed
+
+  # Note: This is a simplified check. Full lifecycle tracking would require
+  # status history, which we don't store. We check for obviously invalid states.
+
+  # Check completed sprints have proper item statuses
+  for sprint_doc in docs/plans/sprints/SPRINT-*.md; do
+    [ -e "$sprint_doc" ] || continue
+
+    doc_status=$(grep "^\*\*Status:\*\*" "$sprint_doc" | sed 's/\*\*Status:\*\* //')
+
+    if [ "$doc_status" = "completed" ]; then
+      sprint_id=$(basename "$sprint_doc" | grep -oE 'SPRINT-[0-9]{3}')
+
+      # Check if all items in completed sprint are properly closed or moved
+      work_items=$(grep -oE '(FEAT|BUG)-[0-9]{3}' "$sprint_doc" | sort -u)
+
+      for item_id in $work_items; do
+        item_type=${item_id%%-*}
+
+        if [ "$item_type" = "FEAT" ]; then
+          item_status=$(yq eval ".features[] | select(.id == \"$item_id\") | .status" features.yaml)
+          item_sprint=$(yq eval ".features[] | select(.id == \"$item_id\") | .sprint_id" features.yaml)
+
+          # Item in completed sprint should be: completed, or moved to different sprint, or returned to approved
+          if [ "$item_status" != "completed" ] && [ "$item_status" != "approved" ] && [ "$item_sprint" = "$sprint_id" ]; then
+            echo -e "  ${YELLOW}⚠${NC} $item_id in completed $sprint_id but status=$item_status and still in sprint"
+            ((check_errors++))
+          fi
+        elif [ "$item_type" = "BUG" ]; then
+          item_status=$(yq eval ".bugs[] | select(.id == \"$item_id\") | .status" bugs.yaml)
+          item_sprint=$(yq eval ".bugs[] | select(.id == \"$item_id\") | .sprint_id" bugs.yaml)
+
+          # Bug in completed sprint should be: resolved, or moved to different sprint, or returned to triaged
+          if [ "$item_status" != "resolved" ] && [ "$item_status" != "triaged" ] && [ "$item_sprint" = "$sprint_id" ]; then
+            echo -e "  ${YELLOW}⚠${NC} $item_id in completed $sprint_id but status=$item_status and still in sprint"
+            ((check_errors++))
+          fi
+        fi
+      done
+    fi
+  done
+
+  if [ $check_errors -eq 0 ]; then
+    echo -e "${GREEN}✅ Status Lifecycle${NC}"
+    echo "   - All completed sprints have proper item statuses"
+  else
+    echo -e "${RED}❌ Status Lifecycle ($check_errors errors)${NC}"
+    ERRORS=$((ERRORS + check_errors))
+  fi
+
+  echo ""
+}
