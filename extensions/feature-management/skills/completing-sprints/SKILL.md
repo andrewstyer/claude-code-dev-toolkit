@@ -568,3 +568,112 @@ ${user_input_actions || "N/A"}
 **Created:** 2025-11-21T14:30:00Z
 **Sprint Document:** [docs/plans/sprints/SPRINT-001-core-features.md](../SPRINT-001-core-features.md)
 ````
+
+### Phase 4: Update Files and Commit
+
+**Step 1: Update bugs.yaml**
+
+For each bug in sprint, update based on completion status and disposition:
+
+**Bug resolved:**
+
+```yaml
+- id: BUG-001
+  title: "Timeline crashes on scroll"
+  # ... existing fields ...
+  status: resolved  # Update from in-progress
+  resolved_at: "2025-11-21T14:30:00Z"  # Add timestamp
+  updated_at: "2025-11-21T14:30:00Z"
+  sprint_id: SPRINT-001  # Keep for historical reference
+```
+
+**Bug incomplete - returning to backlog:**
+
+```yaml
+- id: BUG-003
+  title: "Document upload fails"
+  # ... existing fields ...
+  status: triaged  # Reset from in-progress
+  # sprint_id: SPRINT-001  ← REMOVE this field
+  # scheduled_at: ...      ← REMOVE this field
+  updated_at: "2025-11-21T14:30:00Z"
+```
+
+**Bug incomplete - moving to next sprint:**
+
+```yaml
+- id: BUG-003
+  title: "Document upload fails"
+  # ... existing fields ...
+  status: scheduled  # Or keep current status (in-progress)
+  sprint_id: SPRINT-002  # Update from SPRINT-001
+  moved_from: SPRINT-001  # Add for tracking
+  updated_at: "2025-11-21T14:30:00Z"
+```
+
+**Bug incomplete - staying in current sprint:**
+
+```yaml
+- id: BUG-003
+  # ... no changes ...
+  # sprint_id remains SPRINT-001
+  updated_at: "2025-11-21T14:30:00Z"
+```
+
+**Implementation:**
+
+Read bugs.yaml, parse YAML, update matching bugs, write back to file.
+
+**Step 2: Update features.yaml**
+
+Similar logic to bugs, with additional partial completion handling:
+
+**Feature completed:**
+
+```yaml
+- id: FEAT-003
+  title: "Improve document upload"
+  # ... existing fields ...
+  status: completed  # Update from in-progress
+  completed_at: "2025-11-21T14:30:00Z"  # Add timestamp
+  updated_at: "2025-11-21T14:30:00Z"
+  sprint_id: SPRINT-001  # Keep for historical reference
+```
+
+**Feature partial completion (moving to next sprint):**
+
+```yaml
+- id: FEAT-001
+  title: "Add medication tracking"
+  # ... existing fields ...
+  status: in-progress  # Keep or update
+  completion_percentage: 75  # Add field (0-100)
+  sprint_id: SPRINT-002  # Update from SPRINT-001
+  moved_from: SPRINT-001  # Add for tracking
+  updated_at: "2025-11-21T14:30:00Z"
+```
+
+**Feature incomplete - returning to backlog:**
+
+```yaml
+- id: FEAT-005
+  title: "Export health summary"
+  # ... existing fields ...
+  status: approved  # Reset from scheduled
+  # sprint_id: SPRINT-001  ← REMOVE this field
+  # scheduled_at: ...      ← REMOVE this field
+  updated_at: "2025-11-21T14:30:00Z"
+```
+
+**Feature incomplete - staying in current sprint:**
+
+```yaml
+- id: FEAT-008
+  # ... no changes ...
+  # sprint_id remains SPRINT-001
+  updated_at: "2025-11-21T14:30:00Z"
+```
+
+**Implementation:**
+
+Read features.yaml, parse YAML, update matching features, write back to file.
