@@ -561,6 +561,86 @@ Note: Run "triage bugs" (interactive) for manual review and overrides.
 - Autonomous: ~5-10 seconds per bug (12 bugs = 1-2 minutes)
 - **Speedup:** 10-20x faster
 
+## Implementation Workflow - Autonomous Mode
+
+**Step 1: Load bugs from bugs.yaml**
+
+```bash
+# Filter for reported bugs only
+reported_bugs=$(yq eval '.bugs[] | select(.status == "reported") | .id' bugs.yaml)
+bug_count=$(echo "$reported_bugs" | wc -l | tr -d ' ')
+
+echo "Found $bug_count reported bugs to triage"
+```
+
+**Step 2: Process each bug**
+
+```bash
+for bug_id in $reported_bugs; do
+  # Extract bug data
+  bug_title=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .title" bugs.yaml)
+  bug_description=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .description" bugs.yaml)
+  bug_reported_date=$(yq eval ".bugs[] | select(.id == \"$bug_id\") | .reported_date" bugs.yaml)
+
+  # Auto-detect severity
+  severity=$(detect_bug_severity "$bug_title" "$bug_description")
+
+  # Check for fix commits
+  fix_commit=$(check_item_in_commits "$bug_id" "fix" "$bug_reported_date")
+
+  # Apply decision rules
+  if [ -n "$fix_commit" ]; then
+    # Bug already fixed
+    update_item_status "$bug_id" "resolved"
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .resolved_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .notes) = \"Auto-detected as fixed from commit $fix_commit\"" -i bugs.yaml
+    echo "  ✓ $bug_id: resolved (fix found)"
+  else
+    # Auto-triage based on severity
+    update_item_status "$bug_id" "triaged"
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .severity) = \"$severity\"" -i bugs.yaml
+    yq eval "(.bugs[] | select(.id == \"$bug_id\") | .notes) = \"Auto-triaged as $severity\"" -i bugs.yaml
+    echo "  ✓ $bug_id: triaged as $severity"
+  fi
+done
+```
+
+**Step 3: Update index file**
+
+```bash
+# Sync bugs.yaml changes to docs/bugs/index.yaml
+cp bugs.yaml docs/bugs/index.yaml
+```
+
+**Step 4: Create git commit**
+
+```bash
+git add bugs.yaml docs/bugs/index.yaml
+
+git commit -m "$(cat <<'EOF'
+feat: auto-triage $bug_count bugs
+
+Auto-Detection Results:
+- $resolved_count bugs resolved (fix commits found)
+- $p0_count bugs triaged as P0
+- $p1_count bugs triaged as P1
+- $p2_count bugs triaged as P2
+
+Files updated:
+- bugs.yaml ($bug_count bugs updated)
+- docs/bugs/index.yaml
+
+🤖 Generated with Claude Code (autonomous mode)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Step 5: Display summary**
+
+Display output format from previous section.
+
 ## Integration Points
 
 - **reporting-bugs skill:** Reads bugs from bugs.yaml
