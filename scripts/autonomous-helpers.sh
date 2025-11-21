@@ -48,3 +48,45 @@ detect_bug_severity() {
   # Default fallback
   echo "P1"
 }
+
+# Calculate sprint velocity from completed sprints
+# Usage: calculate_sprint_velocity [roadmap_file]
+# Returns: Average items per sprint, or 0 if no data
+calculate_sprint_velocity() {
+  local roadmap_file="${1:-ROADMAP.md}"
+
+  if [ ! -f "$roadmap_file" ]; then
+    echo "0"
+    return 1
+  fi
+
+  # Extract completed sprint stats from ROADMAP.md
+  # Format: "Completion: 43% (3/7 items)"
+  local total_items=0
+  local completed_items=0
+  local sprint_count=0
+
+  while IFS= read -r line; do
+    if echo "$line" | grep -q "completed -"; then
+      ((sprint_count++))
+
+      # Extract item counts
+      if echo "$line" | grep -qE '\([0-9]+/[0-9]+ items\)'; then
+        completed=$(echo "$line" | grep -oE '[0-9]+/[0-9]+ items' | cut -d'/' -f1)
+        total=$(echo "$line" | grep -oE '[0-9]+/[0-9]+ items' | cut -d'/' -f2 | cut -d' ' -f1)
+
+        completed_items=$((completed_items + completed))
+        total_items=$((total_items + total))
+      fi
+    fi
+  done < "$roadmap_file"
+
+  if [ $sprint_count -eq 0 ]; then
+    echo "0"
+    return 1
+  fi
+
+  # Calculate average velocity
+  local avg_velocity=$((completed_items / sprint_count))
+  echo "$avg_velocity"
+}
