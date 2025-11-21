@@ -450,6 +450,36 @@ CONSERVATIVE FALLBACK:
 - Auto-rejects clear duplicates (>90% similarity)
 - Keeps uncertain cases as proposed for human review
 
+## Autonomous Mode - Output Format
+
+```
+✅ Auto-Triage Complete
+
+Features Processed: 8
+
+Auto-Detected:
+  - 4 features approved (must-have, in-scope)
+  - 2 features approved (nice-to-have, in-scope)
+  - 1 feature kept as proposed (future priority)
+  - 1 feature rejected (duplicate of FEAT-015)
+
+Warnings:
+  - FEAT-042: New category "analytics" - kept as proposed for review
+
+Files Updated:
+  - features.yaml (8 features updated)
+  - docs/features/index.yaml
+
+Changes committed to git.
+
+Note: Run "triage features" (interactive) for manual review.
+```
+
+**Time Comparison:**
+- Interactive: ~1-2 minutes per feature (8 features = 8-16 minutes)
+- Autonomous: ~5-10 seconds per feature (8 features = 1-2 minutes)
+- **Speedup:** 8-15x faster
+
 ## Success Criteria
 
 ✅ Batch review of multiple features in one session
