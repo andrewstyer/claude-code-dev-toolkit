@@ -515,6 +515,69 @@ Next Steps:
 Changes committed to git.
 ```
 
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Velocity Calculation
+
+Uses shared function from `scripts/autonomous-helpers.sh`:
+
+```bash
+# Calculate average items per sprint from completed sprints
+velocity=$(calculate_sprint_velocity)
+
+if [ "$velocity" = "0" ]; then
+  # No completed sprints, use default capacity
+  velocity=5
+  echo "No velocity data available, using default capacity: 5 items"
+else
+  echo "Calculated velocity: $velocity items per sprint (from completed sprints)"
+fi
+```
+
+**Fallback:** If no completed sprints exist, default to 5 items per sprint
+
+**Cap:** Maximum 10 items per sprint (regardless of velocity)
+
+**Formula:**
+```
+sprint_capacity = min(velocity, available_items, 10)
+```
+
+### 2. Available Work Items
+
+```bash
+# Count triaged bugs
+triaged_bugs=$(yq eval '.bugs[] | select(.status == "triaged") | .id' bugs.yaml)
+bug_count=$(echo "$triaged_bugs" | wc -l | tr -d ' ')
+
+# Count approved features
+approved_features=$(yq eval '.features[] | select(.status == "approved") | .id' features.yaml)
+feature_count=$(echo "$approved_features" | wc -l | tr -d ' ')
+
+total_available=$((bug_count + feature_count))
+
+echo "Available work items: $total_available ($bug_count bugs, $feature_count features)"
+```
+
+**Minimum threshold:** Need at least 3 items to create a sprint
+
+### 3. Sprint Theme Generation
+
+Uses shared function:
+
+```bash
+# Generate theme from selected item IDs
+selected_ids="$bug_ids $feature_ids"
+theme=$(extract_sprint_themes $selected_ids)
+
+sprint_name="Sprint $next_id: $theme"
+```
+
+**Example themes:**
+- "Bug Fixes and Core Features"
+- "Timeline and Document Management"
+- "Performance and UX Polish"
+
 ## Integration with Other Skills
 
 **Upstream skills:**
