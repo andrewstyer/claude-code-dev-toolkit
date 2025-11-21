@@ -740,6 +740,50 @@ Priority order:
 Stop when: capacity reached OR no more features
 ```
 
+## Autonomous Mode - Sprint Creation
+
+**Single Sprint (No Epics):**
+
+```bash
+# Similar to scheduling-work-items but features-only
+next_id=$(yq eval '.nextId' ROADMAP.md)
+sprint_id=$(printf "SPRINT-%03d" $next_id)
+
+theme=$(extract_sprint_themes $selected_feature_ids)
+sprint_name="Sprint $next_id: $theme"
+
+sprint_goal="Implement $must_have_count must-have features"
+```
+
+**Multiple Sprints (Epic Grouping):**
+
+```bash
+# Group features by epic
+declare -A epic_features
+for feature_id in $approved_features; do
+  epic=$(yq eval ".features[] | select(.id == \"$feature_id\") | .epic" features.yaml)
+  if [ -n "$epic" ] && [ "$epic" != "null" ]; then
+    epic_features[$epic]="${epic_features[$epic]} $feature_id"
+  fi
+done
+
+# Create sprint per epic
+for epic in "${!epic_features[@]}"; do
+  sprint_id=$(printf "SPRINT-%03d" $next_id)
+  sprint_name="Sprint $next_id: $epic"
+
+  # Create sprint document
+  # Add features from epic_features[$epic]
+
+  ((next_id++))
+done
+```
+
+**Conservative decisions:**
+- Don't create implementation plans (user can do that)
+- Don't execute features (too presumptuous)
+- Maximum 8 features per sprint
+
 ---
 
 **Version:** 1.0
