@@ -677,3 +677,175 @@ Similar logic to bugs, with additional partial completion handling:
 **Implementation:**
 
 Read features.yaml, parse YAML, update matching features, write back to file.
+
+**Step 3: Update Sprint Document**
+
+File: `docs/plans/sprints/SPRINT-XXX-[slug].md`
+
+**Updates to make:**
+
+1. Change status from "active" to "completed"
+2. Add completion metadata
+3. Update progress stats
+4. Check off completed items
+5. Add notes for incomplete items
+6. Link to retrospective
+
+**Example updates:**
+
+Before:
+```markdown
+**Status:** active
+**Created:** 2025-11-07
+**Goal:** Fix critical bugs and implement medication tracking
+```
+
+After:
+```markdown
+**Status:** completed
+**Created:** 2025-11-07
+**Completed:** 2025-11-21
+**Duration:** 14 days
+**Completion Type:** partial
+**Goal:** Fix critical bugs and implement medication tracking
+```
+
+**Update Features section:**
+
+```markdown
+## Features
+
+### Must-Have
+- [x] FEAT-003: Improve document upload
+  - Status: completed
+  - Completed: 2025-11-21
+
+- [ ] FEAT-001: Add medication tracking
+  - Status: in-progress (75% complete)
+  - Moved to: SPRINT-002
+
+- [ ] FEAT-005: Export health summary
+  - Status: approved
+  - Returned to backlog
+```
+
+**Update Bugs section:**
+
+```markdown
+## Bugs
+
+### P0 (Critical)
+- [x] BUG-001: Timeline crashes on scroll
+  - Severity: P0
+  - Status: resolved
+  - Resolved: 2025-11-21
+
+### P1 (High)
+- [ ] BUG-003: Document upload fails
+  - Severity: P1
+  - Status: in-progress
+  - Moved to: SPRINT-002
+```
+
+**Update Progress section:**
+
+```markdown
+## Progress
+
+- Total Items: 7
+- Completed: 3 (43%)
+- In Progress: 0
+- Pending: 4
+
+Features: 2/5 complete (40%)
+Bugs: 1/2 resolved (50%)
+
+## Sprint Retrospective
+
+📊 [Retrospective: docs/plans/sprints/retrospectives/SPRINT-001-retrospective.md](retrospectives/SPRINT-001-retrospective.md)
+```
+
+**Update Last Updated timestamp:**
+
+```markdown
+---
+
+**Last Updated:** 2025-11-21T14:30:00Z
+```
+
+**Step 4: Update ROADMAP.md**
+
+Move sprint from "Current Sprint" or "Active Sprints" to "Completed Sprints" section.
+
+**Before:**
+
+```markdown
+## Current Sprint
+
+**SPRINT-001: Core Features** (active)
+- Goal: Fix critical bugs and implement medication tracking
+- Duration: 2 weeks
+- Progress: 60% complete (5/7 items)
+
+### Features (5)
+- [x] FEAT-003: Improve document upload (Must-Have)
+- [ ] FEAT-001: Add medication tracking (Must-Have)
+- [ ] FEAT-005: Export health summary (Nice-to-Have)
+...
+```
+
+**After:**
+
+```markdown
+## Current Sprint
+
+**SPRINT-002: UX Polish** (active)
+- Goal: Polish user experience
+- Items: 4 features, 1 bug (includes 2 moved from SPRINT-001)
+...
+
+## Completed Sprints
+
+**SPRINT-001: Core Features** (completed - partial)
+- Completed: 2025-11-21
+- Duration: 14 days
+- Completion: 43% (3/7 items)
+- Retrospective: [docs/plans/sprints/retrospectives/SPRINT-001-retrospective.md](sprints/retrospectives/SPRINT-001-retrospective.md)
+- Sprint Document: [docs/plans/sprints/SPRINT-001-core-features.md](sprints/SPRINT-001-core-features.md)
+```
+
+**If next sprint exists and items moved to it:**
+
+Also update next sprint document (SPRINT-002-*.md) to include moved items:
+
+```markdown
+# SPRINT-002: UX Polish
+
+...
+
+## Features
+
+### Must-Have
+- [ ] FEAT-001: Add medication tracking
+  - Status: in-progress (75% complete)
+  - Moved from: SPRINT-001
+  - Priority: must-have
+  - Category: new-functionality
+  - Implementation Plan: docs/plans/features/FEAT-001-implementation-plan.md
+
+...
+
+## Bugs
+
+### P1 (High)
+- [ ] BUG-003: Document upload fails
+  - Severity: P1
+  - Status: in-progress
+  - Moved from: SPRINT-001
+```
+
+**Step 5: Update Index Files**
+
+Update `docs/bugs/index.yaml` and `docs/features/index.yaml` with new statuses and sprint_ids.
+
+Read each file, update matching entries, write back.
