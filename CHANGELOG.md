@@ -5,6 +5,118 @@ All notable changes to the Claude Code Development Toolkit will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.3] - 2025-11-21
+
+### Added
+
+**Sprint Completion System:**
+- **skills/completing-sprints/** - Systematic sprint completion with retrospectives and validation
+  - Dual-mode operation: Interactive (human-led) and Autonomous (Claude-led)
+  - Interactive mode: ~5-10 minutes per sprint with AskUserQuestion prompts
+  - Autonomous mode: ~2-3 minutes per sprint with auto-detection
+  - Four-phase workflow:
+    1. Select Sprint & Review Completion
+    2. Handle Incomplete Items
+    3. Sprint Completion Details
+    4. Update Files and Commit
+  - Auto-detection from project state (bugs.yaml, features.yaml, ROADMAP.md, plans, git)
+  - Marks bugs as resolved/unresolved, features as completed/partial/incomplete
+  - Incomplete item handling: return to backlog, move to next sprint, or keep in current sprint
+  - Sets completion type: successful (≥80%), partial (50-79%), pivoted (<50%)
+  - Optional retrospective generation (with stats and manual notes, or stats only)
+  - Updates all files: bugs.yaml, features.yaml, sprint docs, ROADMAP.md, index files
+  - Creates retrospective documents: docs/plans/sprints/retrospectives/SPRINT-XXX-retrospective.md
+  - Git commit with detailed statistics and changelog
+
+**Data Validation:**
+- **scripts/validate-sprint-data.sh** - Sprint data consistency validation
+  - Check 1: Sprint Document ↔ YAML consistency (work items, checkboxes, statuses)
+  - Check 2: ROADMAP.md ↔ Sprint Documents consistency (status, item counts)
+  - Check 3: Status lifecycle validation (valid status transitions for completed sprints)
+  - Check 4: Completion integrity (completion_type, completed_at, duration_days fields)
+  - Catches orphaned references and data inconsistencies
+  - Auto-fix mode for correctable issues (--fix flag)
+  - Verbose mode for detailed explanations (--verbose flag)
+  - Integrated into completing-sprints workflow (runs before commit)
+  - Exit codes: 0 (pass), 1 (errors), 2 (warnings only)
+
+**Data Schema Extensions:**
+- **Feature partial completion:** Added completion_percentage field (0-100) to features.yaml
+- **Work item move tracking:** Added moved_from field to track items moved between sprints
+- **Sprint completion metadata:** Added completed, duration, completion_type fields to sprint documents
+
+### Changed
+
+**Extension Documentation:**
+- extensions/feature-management/README.md updated to v1.1
+  - Added completing-sprints as 6th skill
+  - Added Workflow 4: Sprint Completion example
+  - Updated workflow description: "capture → triage → schedule → implement → complete"
+- EXTENSIONS.md updated with completing-sprints skill details
+  - Added to six-skill workflow description
+  - Added Step 4: Complete sprint to Quick Start
+
+**Feature Management Extension:**
+- Now provides complete sprint lifecycle: create → work → complete → retrospect → repeat
+- Works with sprints created by scheduling-work-items, scheduling-features, or scheduling-implementation-plan
+- Handles both unified (bugs + features) and feature-only sprints
+
+### Integration
+
+**Complete sprint lifecycle workflow:**
+```
+scheduling-work-items → creates sprint with bugs + features
+   ↓
+[Work during sprint, update statuses]
+   ↓
+completing-sprints → completes sprint, generates retrospective
+   ↓
+Sprint document updated, ROADMAP.md updated, data validated
+```
+
+**Validation integration:**
+```
+completing-sprints skill (Phase 4, Step 7)
+   ↓
+scripts/validate-sprint-data.sh
+   ↓
+If validation passes → git commit
+If validation fails → abort, show errors
+```
+
+### Notes
+
+**Why sprint completion matters:**
+- Provides closure to sprint work
+- Generates retrospectives for learning and improvement
+- Maintains data consistency across all files
+- Handles incomplete work systematically
+- Tracks velocity and completion rates
+- Prevents data drift through validation
+
+**Use completing-sprints when:**
+- End of sprint cycle (2 weeks typical)
+- Want to review sprint progress systematically
+- Need to generate sprint retrospective
+- Moving incomplete work to next sprint or backlog
+- Want to ensure data consistency
+
+**Interactive vs Autonomous mode:**
+- Interactive: Human reviews and approves each step (recommended for important sprints)
+- Autonomous: Claude auto-detects and completes based on project state (for routine completions)
+
+### Design
+
+Based on: docs/plans/2025-11-21-completing-sprints-design.md
+
+**Key design decisions:**
+- Dual-mode operation for flexibility (human-led vs autonomous)
+- Auto-detection from multiple sources (yaml, roadmap, plans, git)
+- Structured retrospectives with statistics
+- Validation script ensures ongoing data integrity
+- Conservative defaults in autonomous mode
+- Comprehensive error handling for all edge cases
+
 ## [2.1.2] - 2025-11-14
 
 ### Added
