@@ -418,6 +418,80 @@ Bugs are marked as triaged. You can:
 3. Re-run triage to regenerate plan
 ```
 
+## Autonomous Mode - Auto-Detection Logic
+
+### 1. Severity Detection
+
+Uses shared function from `scripts/autonomous-helpers.sh`:
+
+```bash
+# Source shared helpers
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../../scripts/autonomous-helpers.sh"
+
+# Auto-detect severity
+severity=$(detect_bug_severity "$bug_title" "$bug_description")
+```
+
+**Detection rules:**
+
+**P0 (Critical):**
+- Keywords: crash, data loss, corruption, unusable, breaks app, critical, fatal
+- Action: Auto-triage immediately, status="triaged"
+- Note: "Auto-triaged as P0 (critical)"
+
+**P1 (High):**
+- Keywords: broken, fails, error, doesn't work, blocks, regression
+- Action: Auto-triage, status="triaged"
+- Note: "Auto-triaged as P1 (high priority)"
+
+**P2 (Low):**
+- Keywords: alignment, styling, minor, cosmetic, polish, typo, ui issue
+- Action: Auto-triage, status="triaged"
+- Note: "Auto-triaged as P2 (low priority)"
+
+**Fallback:** If no keywords match, default to P1 (moderate)
+
+### 2. Fix Detection
+
+Check git commits for fix patterns:
+
+```bash
+# Check if bug already fixed
+fix_commit=$(check_item_in_commits "$bug_id" "fix" "$bug_reported_date")
+
+if [ -n "$fix_commit" ]; then
+  # Bug appears to be fixed
+  status="resolved"
+  resolved_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  note="Auto-detected as fixed from git commit $fix_commit"
+fi
+```
+
+**Detection patterns:**
+- "fix BUG-XXX"
+- "BUG-XXX fix"
+- "resolve BUG-XXX"
+- "BUG-XXX resolved"
+
+**Conservative:** Only mark as resolved if clear fix commit found
+
+### 3. Duplicate Detection
+
+Compare bug title against existing bugs using fuzzy matching:
+
+```bash
+# Simple substring matching (production would use Levenshtein distance)
+existing_bugs=$(yq eval '.bugs[].title' bugs.yaml)
+
+for existing_title in $existing_bugs; do
+  # Calculate similarity (simplified)
+  # If >80% similar, flag as potential duplicate
+done
+```
+
+**Action:** Display warning but don't auto-reject (too risky)
+
 ## Integration Points
 
 - **reporting-bugs skill:** Reads bugs from bugs.yaml
