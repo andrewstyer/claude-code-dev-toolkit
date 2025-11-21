@@ -726,6 +726,65 @@ Create `docs/plans/sprints/${sprint_id}-${slug}.md`:
 **Last Updated:** ${timestamp}
 ```
 
+## Autonomous Mode - File Updates
+
+**Update bugs.yaml:**
+
+```bash
+for bug_id in $selected_bug_ids; do
+  # Update status to scheduled
+  update_item_status "$bug_id" "scheduled"
+
+  # Add sprint_id
+  yq eval "(.bugs[] | select(.id == \"$bug_id\") | .sprint_id) = \"$sprint_id\"" -i bugs.yaml
+
+  # Add scheduled_at timestamp
+  yq eval "(.bugs[] | select(.id == \"$bug_id\") | .scheduled_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i bugs.yaml
+done
+```
+
+**Update features.yaml:**
+
+```bash
+for feature_id in $selected_feature_ids; do
+  # Update status to scheduled
+  update_item_status "$feature_id" "scheduled"
+
+  # Add sprint_id
+  yq eval "(.features[] | select(.id == \"$feature_id\") | .sprint_id) = \"$sprint_id\"" -i features.yaml
+
+  # Add scheduled_at timestamp
+  yq eval "(.features[] | select(.id == \"$feature_id\") | .scheduled_at) = \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" -i features.yaml
+done
+```
+
+**Update ROADMAP.md:**
+
+Add sprint to "Current Sprint" or "Active Sprints" section:
+
+```markdown
+## Current Sprint
+
+**${sprint_name}** (active)
+- Goal: ${sprint_goal}
+- Duration: ${sprint_duration}
+- Items: ${item_count} (${bug_count} bugs, ${feature_count} features)
+- Started: ${start_date}
+- Expected end: ${end_date}
+
+### Bugs (${bug_count})
+[List bugs]
+
+### Features (${feature_count})
+[List features]
+```
+
+**Increment next sprint ID:**
+
+```bash
+yq eval '.nextId += 1' -i ROADMAP.md
+```
+
 ## Integration with Other Skills
 
 **Upstream skills:**
