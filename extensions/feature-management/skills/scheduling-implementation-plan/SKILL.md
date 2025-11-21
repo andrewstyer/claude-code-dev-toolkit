@@ -804,6 +804,59 @@ fi
 - Single sprint: feature.sprint_id = SPRINT-XXX
 - Multiple sprints: feature.sprint_id = first sprint, add sprints field with array
 
+## Autonomous Mode - Output Format
+
+**Single Sprint:**
+
+```
+✅ Auto-Schedule Complete
+
+Plan: docs/plans/features/FEAT-042-medication-tracking-plan.md
+Tasks: 7
+
+Sprint Created: SPRINT-008 - Medication Tracking
+Duration: 1-2 weeks
+Tasks: 7
+
+Files Updated:
+  - docs/plans/sprints/SPRINT-008-medication-tracking.md
+  - features.yaml (FEAT-042: sprint_id = SPRINT-008)
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Use executing-plans to implement SPRINT-008 tasks
+```
+
+**Multiple Sprints:**
+
+```
+✅ Auto-Schedule Complete
+
+Plan: docs/plans/features/FEAT-050-analytics-dashboard-plan.md
+Tasks: 18
+
+Sprints Created: 2 (split at natural boundaries)
+
+SPRINT-009: Analytics Dashboard - Phase 1
+  - Duration: 2 weeks
+  - Tasks: 8 (tasks 1-8)
+
+SPRINT-010: Analytics Dashboard - Phase 2
+  - Duration: 2 weeks
+  - Tasks: 10 (tasks 9-18)
+
+Files Updated:
+  - docs/plans/sprints/SPRINT-009-analytics-dashboard-phase-1.md
+  - docs/plans/sprints/SPRINT-010-analytics-dashboard-phase-2.md
+  - features.yaml (FEAT-050: sprint_id = SPRINT-009, sprints = [009, 010])
+  - ROADMAP.md
+
+Changes committed to git.
+
+Next: Start with SPRINT-009, then proceed to SPRINT-010
+```
+
 ## Notes
 
 - This skill bridges standalone implementation plans into the sprint system
