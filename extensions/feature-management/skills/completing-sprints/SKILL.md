@@ -389,3 +389,182 @@ incomplete_items = {
 ```
 
 This data will be used in Phase 4 to update files.
+
+### Phase 3: Sprint Completion Details
+
+**Step 1: Set Completion Type (Interactive)**
+
+Use AskUserQuestion:
+
+```
+Question: "How would you characterize this sprint completion?"
+Header: "Completion Type"
+multiSelect: false
+Options:
+  - Label: "Successful"
+    Description: "Goals met, most items completed (≥80%)"
+  - Label: "Partial"
+    Description: "Some goals met, significant items incomplete (50-79%)"
+  - Label: "Pivoted"
+    Description: "Sprint redirected, different outcomes than planned (<50%)"
+```
+
+**Step 1: Set Completion Type (Autonomous)**
+
+Auto-determine based on completion rate:
+
+```
+if completion_rate >= 80:
+  completion_type = "successful"
+elif completion_rate >= 50:
+  completion_type = "partial"
+else:
+  completion_type = "pivoted"
+```
+
+**Step 2: Calculate Sprint Stats**
+
+```python
+# Extract sprint created date from sprint document
+created_date = "2025-11-07"  # From **Created:** field
+
+# Current date
+completed_date = "2025-11-21"
+
+# Calculate duration
+from datetime import datetime
+created = datetime.fromisoformat(created_date)
+completed = datetime.fromisoformat(completed_date)
+duration_days = (completed - created).days
+
+# Calculate completion rates
+total_items = len(features) + len(bugs)
+completed_items = len(completed_features) + len(resolved_bugs)
+completion_rate = (completed_items / total_items * 100) if total_items > 0 else 0
+
+feature_completion_rate = (len(completed_features) / len(features) * 100) if features else 0
+bug_resolution_rate = (len(resolved_bugs) / len(bugs) * 100) if bugs else 0
+
+# Calculate velocity
+velocity = completed_items / duration_days if duration_days > 0 else 0
+```
+
+Display:
+
+```
+Sprint Statistics:
+
+Duration: 14 days (2025-11-07 to 2025-11-21)
+Completion Rate: 43% (3/7 items completed)
+
+Features:
+  • Completed: 2/5 (40%)
+  • Partial: 1 (FEAT-001 at 75%)
+  • Incomplete: 2
+
+Bugs:
+  • Resolved: 1/2 (50%)
+  • Unresolved: 1
+
+Velocity: 3 items completed in 14 days (0.21 items/day)
+```
+
+**Step 3: Ask About Retrospective (Interactive)**
+
+Use AskUserQuestion:
+
+```
+Question: "Create sprint retrospective document?"
+Header: "Retrospective"
+multiSelect: false
+Options:
+  - Label: "Yes, with notes"
+    Description: "Generate stats + prompt for what went well, didn't go well, action items"
+  - Label: "Yes, stats only"
+    Description: "Generate stats without manual notes"
+  - Label: "No"
+    Description: "Skip retrospective creation"
+```
+
+**Step 3: Retrospective (Autonomous)**
+
+Always create retrospective with stats only (no manual notes in autonomous mode).
+
+**Step 4: Generate Retrospective (If Requested)**
+
+**If "Yes, with notes" (Interactive only):**
+
+Prompt for:
+1. "What went well during this sprint?"
+2. "What didn't go well or could be improved?"
+3. "Action items for next sprint?"
+
+Use simple text prompts (not AskUserQuestion) to collect freeform input.
+
+**Create retrospective file:**
+
+File: `docs/plans/sprints/retrospectives/SPRINT-XXX-retrospective.md`
+
+Template:
+
+````markdown
+# Sprint Retrospective: SPRINT-001 - Core Features
+
+**Sprint ID:** SPRINT-001
+**Sprint Name:** Core Features
+**Goal:** Fix critical bugs and implement medication tracking
+**Completion Type:** partial
+**Duration:** 14 days (2025-11-07 to 2025-11-21)
+
+## Statistics
+
+### Completion Summary
+- **Total Items:** 7 (43% completed)
+- **Features:** 2/5 completed (40%)
+  - Partial: 1 feature (FEAT-001 at 75%)
+- **Bugs:** 1/2 resolved (50%)
+
+### Velocity
+- Items completed: 3 in 14 days
+- Average: 0.21 items per day
+
+### Incomplete Items Disposition
+- Moved to next sprint: 2 items (BUG-003, FEAT-001)
+- Returned to backlog: 2 items (FEAT-005, FEAT-008)
+- Kept in sprint: 0 items
+
+## Completed Work
+
+### Features
+- [x] FEAT-003: Improve document upload
+- [x] FEAT-007: Add onboarding flow
+
+### Bugs
+- [x] BUG-001: Timeline crashes on scroll
+
+## Incomplete Work
+
+### Features
+- [ ] FEAT-001: Add medication tracking (75% complete) → Moved to SPRINT-002
+- [ ] FEAT-005: Export health summary → Returned to backlog
+- [ ] FEAT-008: Improve navigation → Returned to backlog
+
+### Bugs
+- [ ] BUG-003: Document upload fails → Moved to SPRINT-002
+
+## Retrospective Notes
+
+### What Went Well ✅
+${user_input_well || "N/A"}
+
+### What Didn't Go Well ⚠️
+${user_input_not_well || "N/A"}
+
+### Action Items for Next Sprint 🎯
+${user_input_actions || "N/A"}
+
+---
+
+**Created:** 2025-11-21T14:30:00Z
+**Sprint Document:** [docs/plans/sprints/SPRINT-001-core-features.md](../SPRINT-001-core-features.md)
+````
