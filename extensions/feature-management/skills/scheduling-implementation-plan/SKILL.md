@@ -776,6 +776,34 @@ IF task_count ≤ 8:
 
 **Conservative fallback:** When boundaries unclear, default to single sprint
 
+### 5. Feature Linking
+
+If FEAT-XXX in plan filename, link to feature:
+
+```bash
+# Extract FEAT-XXX from filename
+feature_id=$(basename "$plan_file" | grep -oE 'FEAT-[0-9]{3}')
+
+if [ -n "$feature_id" ]; then
+  echo "Detected feature: $feature_id"
+
+  # Update features.yaml with sprint_id(s)
+  for sprint_id in $created_sprint_ids; do
+    yq eval "(.features[] | select(.id == \"$feature_id\") | .sprint_id) = \"$sprint_id\"" -i features.yaml
+  done
+
+  # Add implementation_plan field if not exists
+  yq eval "(.features[] | select(.id == \"$feature_id\") | .implementation_plan) = \"$plan_file\"" -i features.yaml
+
+  # Update status to scheduled
+  update_item_status "$feature_id" "scheduled"
+fi
+```
+
+**Linking rules:**
+- Single sprint: feature.sprint_id = SPRINT-XXX
+- Multiple sprints: feature.sprint_id = first sprint, add sprints field with array
+
 ## Notes
 
 - This skill bridges standalone implementation plans into the sprint system
